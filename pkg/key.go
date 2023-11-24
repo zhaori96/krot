@@ -8,6 +8,6 @@ type Key struct {
 	Expires time.Time `json:"expires"`
 }
 
-func (k *Key) Deprecated() bool {
+func (k *Key) Expired() bool {
 	return k.Expires.After(time.Now())
 }
