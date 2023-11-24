@@ -8,4 +8,9 @@ func (e KeyRotatorError) Error() string {
 
 const (
 	ErrKeyNotFound = KeyRotatorError("key not found")
+
+	ErrInvalidSettings         = KeyRotatorError("invalid settings")
+	ErrInvalidRotationKeyCount = KeyRotatorError("invalid rotation key count")
+	ErrInvalidRotationInterval = KeyRotatorError("invalid rotation interval")
+	ErrInvalidKeyExpiration    = KeyRotatorError("invalid key expiration")
 )
