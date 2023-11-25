@@ -85,6 +85,8 @@ type Rotator struct {
 	state  RotatorState
 	status RotatorStatus
 
+	controller *RotationController
+
 	storage KeyStorage
 
 	hooksBeforeRotation RotatorHooks
@@ -92,11 +94,13 @@ type Rotator struct {
 }
 
 func New() *Rotator {
-	return &Rotator{}
+	return &Rotator{
+		controller: NewRotationController(),
+	}
 }
 
 func NewWithSettings(settings *RotatorSettings) (*Rotator, error) {
-	rotator := &Rotator{}
+	rotator := &Rotator{controller: NewRotationController()}
 	if err := rotator.SetSettings(settings); err != nil {
 		return nil, err
 	}
