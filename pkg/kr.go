@@ -1,12 +1,19 @@
 package kr
 
 import (
-	"context"
 	"fmt"
 	"time"
 )
 
 type RotatorHook func(rotator Rotator, activeKeyIds []*Key)
+
+type RotatorHooks []RotatorHook
+
+func (h RotatorHooks) Run(rotator Rotator, activeKeyIds []*Key) {
+	for _, hook := range h {
+		hook(rotator, activeKeyIds)
+	}
+}
 
 type RotatorState uint
 
