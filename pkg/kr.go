@@ -78,3 +78,82 @@ func (s *RotatorSettings) Validate() error {
 
 	return nil
 }
+
+type Rotator struct {
+	settings *RotatorSettings
+
+	state  RotatorState
+	status RotatorStatus
+
+	storage KeyStorage
+
+	hooksBeforeRotation RotatorHooks
+	hooksAfterRotation  RotatorHooks
+}
+
+func New() *Rotator {
+	return &Rotator{}
+}
+
+func NewWithSettings(settings *RotatorSettings) (*Rotator, error) {
+	rotator := &Rotator{}
+	if err := rotator.SetSettings(settings); err != nil {
+		return nil, err
+	}
+
+	return rotator, nil
+}
+
+func (r *Rotator) Status() RotatorStatus {
+	return r.status
+}
+
+func (r *Rotator) State() RotatorState {
+	return r.state
+}
+
+func (r *Rotator) SetSettings(settings *RotatorSettings) error {
+	if settings == nil {
+		return fmt.Errorf("%w: settings cannot be nil", ErrInvalidSettings)
+	}
+
+	if err := settings.Validate(); err != nil {
+		return fmt.Errorf("%w: %w", ErrInvalidSettings, err)
+	}
+
+	r.settings = settings
+
+	return nil
+}
+
+func (r *Rotator) RotationKeyCount() int {
+	return r.settings.RotationKeyCount
+}
+
+func (r *Rotator) KeyExpiration() time.Duration {
+	return r.settings.KeyExpiration
+}
+
+func (r *Rotator) RotationInterval() time.Duration {
+	return r.settings.RotationInterval
+}
+
+func (r *Rotator) AutoClearExpiredKeys() bool {
+	return r.settings.AutoClearExpiredKeys
+}
+
+func (r *Rotator) SetStorage(storage KeyStorage) {
+	if r.status == RotatorStatusActive {
+		panic("cannot set storage while rotator is running")
+	}
+
+	r.storage = storage
+}
+
+func (r *Rotator) BeforeRotation(hooks ...RotatorHook) {
+	r.hooksBeforeRotation = append(hooks, r.hooksBeforeRotation...)
+}
+
+func (r *Rotator) AfterRotation(hooks ...RotatorHook) {
+	r.hooksAfterRotation = append(r.hooksAfterRotation, hooks...)
+}
