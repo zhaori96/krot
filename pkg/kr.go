@@ -89,6 +89,7 @@ type Rotator struct {
 
 	storage   KeyStorage
 	generator KeyGenerator
+	cleaner   KeyCleaner
 
 	hooksBeforeRotation RotatorHooks
 	hooksAfterRotation  RotatorHooks
