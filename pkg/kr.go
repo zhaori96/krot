@@ -201,22 +201,26 @@ func (r *Rotator) Rotate() error {
 
 	keys := make([]*Key, 0, r.settings.RotationKeyCount)
 	for i := 0; i < r.settings.RotationKeyCount; i++ {
-		keyValue, err := r.generator.Generate()
-		if err != nil {
-			return err
-		}
-
 		keyID := make([]byte, KeySize256)
 		if _, err := rand.Read(keyID); err != nil {
 			return err
 		}
 
+		keyValue, err := r.generator.Generate()
+		if err != nil {
+			return err
+		}
+
+		keyExpiration := time.Now().
+			Add(r.settings.RotationInterval).
+			Add(r.settings.KeyExpiration)
+
+		r.cleaner.Add(string(keyID), keyExpiration)
+
 		key := &Key{
-			ID:    fmt.Sprintf("%s:%x", r.id, keyID),
-			Value: keyValue,
-			Expires: time.Now().
-				Add(r.settings.RotationInterval).
-				Add(r.settings.KeyExpiration),
+			ID:      fmt.Sprintf("%s:%x", r.id, keyID),
+			Value:   keyValue,
+			Expires: keyExpiration,
 		}
 
 		keys = append(keys, key)
@@ -250,6 +254,8 @@ func (r *Rotator) Start() error {
 	r.status = RotatorStatusActive
 
 	go r.run()
+	go r.cleaner.Start(context.Background())
+
 	return nil
 }
 
