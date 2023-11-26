@@ -101,21 +101,20 @@ type Rotator struct {
 
 func New() *Rotator {
 	rotator := &Rotator{
-		controller: NewRotationController(),
+		id: generateInstanceID(),
 	}
-
-	rotator.id = generateInstanceID()
 
 	return rotator
 }
 
 func NewWithSettings(settings *RotatorSettings) (*Rotator, error) {
-	rotator := &Rotator{controller: NewRotationController()}
+	rotator := &Rotator{
+		id: generateInstanceID(),
+	}
+
 	if err := rotator.SetSettings(settings); err != nil {
 		return nil, err
 	}
-
-	rotator.id = generateInstanceID()
 
 	return rotator, nil
 }
@@ -235,6 +234,8 @@ func (r *Rotator) Rotate() error {
 }
 
 func (r *Rotator) Start() error {
+	r.controller = NewRotationController()
+
 	if r.status == RotatorStatusActive {
 		return ErrRotatorAlreadyRunning
 	}
@@ -265,6 +266,7 @@ func (r *Rotator) Stop() {
 	}
 
 	r.controller.Dipose()
+	r.cleaner.Stop()
 	r.status = RotatorStatusInactive
 }
 
