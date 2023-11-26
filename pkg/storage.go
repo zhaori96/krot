@@ -8,7 +8,7 @@ import (
 
 type KeyStorage interface {
 	Get(context context.Context, id string) (*Key, error)
-	Set(context context.Context, keys ...*Key) error
+	Add(context context.Context, keys ...*Key) error
 	Delete(context context.Context, id string) error
 	Erase(context context.Context) error
 }
@@ -23,7 +23,7 @@ func NewKeyStorage() KeyStorage {
 	}
 }
 
-func (s *inMemoryStorage) Get(context context.Context, id string) (*Key, error) {
+func (s *inMemoryStorage) Get(_ context.Context, id string) (*Key, error) {
 	key, ok := s.keys[id]
 	if !ok {
 		return nil, errors.Join(ErrKeyNotFound, fmt.Errorf("key %s not found", id))
@@ -32,7 +32,7 @@ func (s *inMemoryStorage) Get(context context.Context, id string) (*Key, error) 
 	return key, nil
 }
 
-func (s *inMemoryStorage) Set(context context.Context, keys ...*Key) error {
+func (s *inMemoryStorage) Add(_ context.Context, keys ...*Key) error {
 	for _, key := range keys {
 		if key == nil || key.ID == "" || key.Value == "" {
 			continue
@@ -44,12 +44,12 @@ func (s *inMemoryStorage) Set(context context.Context, keys ...*Key) error {
 	return nil
 }
 
-func (s *inMemoryStorage) Delete(context context.Context, id string) error {
+func (s *inMemoryStorage) Delete(_ context.Context, id string) error {
 	delete(s.keys, id)
 	return nil
 }
 
-func (s *inMemoryStorage) Erase(context context.Context) error {
+func (s *inMemoryStorage) Erase(_ context.Context) error {
 	s.keys = make(map[string]*Key)
 	return nil
 }

@@ -225,7 +225,7 @@ func (r *Rotator) Rotate() error {
 		keys = append(keys, key)
 	}
 
-	err := r.storage.Set(context.Background(), keys...)
+	err := r.storage.Add(context.Background(), keys...)
 	if err != nil {
 		return err
 	}
