@@ -31,8 +31,13 @@ func (c *RotationController) Unlock() {
 	c.mutex.Unlock()
 }
 
-func (c *RotationController) Wait() {
-	<-c.context.Done()
+func (c *RotationController) Disposed() bool {
+	select {
+	case <-c.context.Done():
+		return true
+	default:
+		return false
+	}
 }
 
 func (c *RotationController) WaitWithCallback(callback func()) {

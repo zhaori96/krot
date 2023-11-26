@@ -1,6 +1,8 @@
 package kr
 
 import (
+	"context"
+	"crypto/rand"
 	"fmt"
 	"time"
 )
@@ -80,6 +82,8 @@ func (s *RotatorSettings) Validate() error {
 }
 
 type Rotator struct {
+	id string
+
 	settings *RotatorSettings
 
 	state  RotatorState
@@ -96,9 +100,13 @@ type Rotator struct {
 }
 
 func New() *Rotator {
-	return &Rotator{
+	rotator := &Rotator{
 		controller: NewRotationController(),
 	}
+
+	rotator.id = generateInstanceID()
+
+	return rotator
 }
 
 func NewWithSettings(settings *RotatorSettings) (*Rotator, error) {
@@ -107,7 +115,18 @@ func NewWithSettings(settings *RotatorSettings) (*Rotator, error) {
 		return nil, err
 	}
 
+	rotator.id = generateInstanceID()
+
 	return rotator, nil
+}
+
+func generateInstanceID() string {
+	id := make([]byte, KeySize128)
+	if _, err := rand.Read(id); err != nil {
+		return ""
+	}
+
+	return fmt.Sprintf("kr#%s", string(id))
 }
 
 func (r *Rotator) Status() RotatorStatus {
@@ -174,4 +193,90 @@ func (r *Rotator) BeforeRotation(hooks ...RotatorHook) {
 
 func (r *Rotator) AfterRotation(hooks ...RotatorHook) {
 	r.hooksAfterRotation = append(r.hooksAfterRotation, hooks...)
+}
+
+func (r *Rotator) Rotate() error {
+	r.controller.Lock()
+	defer r.controller.Unlock()
+
+	keys := make([]*Key, 0, r.settings.RotationKeyCount)
+	for i := 0; i < r.settings.RotationKeyCount; i++ {
+		keyValue, err := r.generator.Generate()
+		if err != nil {
+			return err
+		}
+
+		keyID := make([]byte, KeySize256)
+		if _, err := rand.Read(keyID); err != nil {
+			return err
+		}
+
+		key := &Key{
+			ID:    fmt.Sprintf("%s:%x", r.id, keyID),
+			Value: keyValue,
+			Expires: time.Now().
+				Add(r.settings.RotationInterval).
+				Add(r.settings.KeyExpiration),
+		}
+
+		keys = append(keys, key)
+	}
+
+	err := r.storage.Set(context.Background(), keys...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *Rotator) Start() error {
+	if r.status == RotatorStatusActive {
+		return ErrRotatorAlreadyRunning
+	}
+
+	if r.generator == nil {
+		r.generator = NewKeyGenerator(KeySize256)
+	}
+
+	if r.storage == nil {
+		r.storage = NewKeyStorage()
+	}
+
+	if r.settings == nil {
+		r.settings = DefaultRotatorSettings()
+	}
+
+	r.status = RotatorStatusActive
+
+	go r.run()
+	return nil
+}
+
+func (r *Rotator) Stop() {
+	if r.status == RotatorStatusInactive {
+		return
+	}
+
+	r.controller.Dipose()
+	r.status = RotatorStatusInactive
+}
+
+func (r *Rotator) run() error {
+	defer func() {
+		r.state = RotatorStateIdle
+	}()
+
+	for {
+		if r.controller.Disposed() {
+			return nil
+		}
+
+		time.Sleep(r.settings.RotationInterval)
+		r.state = RotatorStateRotating
+		if err := r.Rotate(); err != nil {
+			return err
+		}
+		r.state = RotatorStateIdle
+	}
 }

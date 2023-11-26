@@ -4,7 +4,7 @@ import "time"
 
 type Key struct {
 	ID      string    `json:"id"`
-	Value   string    `json:"value"`
+	Value   any    `json:"value"`
 	Expires time.Time `json:"expires"`
 }
 

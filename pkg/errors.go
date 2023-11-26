@@ -13,4 +13,5 @@ const (
 	ErrInvalidRotationKeyCount = KeyRotatorError("invalid rotation key count")
 	ErrInvalidRotationInterval = KeyRotatorError("invalid rotation interval")
 	ErrInvalidKeyExpiration    = KeyRotatorError("invalid key expiration")
+	ErrRotatorAlreadyRunning   = KeyRotatorError("rotator already running")
 )
