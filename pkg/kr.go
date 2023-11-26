@@ -87,7 +87,8 @@ type Rotator struct {
 
 	controller *RotationController
 
-	storage KeyStorage
+	storage   KeyStorage
+	generator KeyGenerator
 
 	hooksBeforeRotation RotatorHooks
 	hooksAfterRotation  RotatorHooks
@@ -152,6 +153,18 @@ func (r *Rotator) SetStorage(storage KeyStorage) {
 	}
 
 	r.storage = storage
+}
+
+func (r *Rotator) SetGenerator(generator KeyGenerator) {
+	if r.status == RotatorStatusActive {
+		panic("cannot set generator while rotator is running")
+	}
+
+	if generator == nil {
+		panic("generator cannot be nil")
+	}
+
+	r.generator = generator
 }
 
 func (r *Rotator) BeforeRotation(hooks ...RotatorHook) {
