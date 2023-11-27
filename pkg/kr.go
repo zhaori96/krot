@@ -7,13 +7,13 @@ import (
 	"time"
 )
 
-type RotatorHook func(rotator Rotator, activeKeyIds []*Key)
+type RotatorHook func(rotator *Rotator)
 
 type RotatorHooks []RotatorHook
 
-func (h RotatorHooks) Run(rotator Rotator, activeKeyIds []*Key) {
+func (h RotatorHooks) Run(rotator *Rotator) {
 	for _, hook := range h {
-		hook(rotator, activeKeyIds)
+		hook(rotator)
 	}
 }
 
@@ -202,6 +202,8 @@ func (r *Rotator) Rotate() error {
 	r.controller.Lock()
 	defer r.controller.Unlock()
 
+	r.hooksBeforeRotation.Run(r)
+
 	keys := make([]*Key, 0, r.settings.RotationKeyCount)
 	for i := 0; i < r.settings.RotationKeyCount; i++ {
 		keyID := make([]byte, KeySize256)
@@ -234,6 +236,7 @@ func (r *Rotator) Rotate() error {
 		return err
 	}
 
+	r.hooksAfterRotation.Run(r)
 	return nil
 }
 
