@@ -276,6 +276,10 @@ func (r *Rotator) run() error {
 		r.state = RotatorStateIdle
 	}()
 
+	if err := r.Rotate(); err != nil {
+		return err
+	}
+
 	for {
 		if r.controller.Disposed() {
 			return nil
@@ -286,6 +290,7 @@ func (r *Rotator) run() error {
 		if err := r.Rotate(); err != nil {
 			return err
 		}
+
 		r.state = RotatorStateIdle
 	}
 }
