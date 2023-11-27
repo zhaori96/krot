@@ -2,9 +2,11 @@ package kr
 
 import (
 	"context"
-	"crypto/rand"
 	"fmt"
 	"time"
+
+	cryptorand "crypto/rand"
+	mathrand "math/rand"
 )
 
 type RotatorHook func(rotator *Rotator)
@@ -121,7 +123,7 @@ func NewWithSettings(settings *RotatorSettings) (*Rotator, error) {
 
 func generateInstanceID() string {
 	id := make([]byte, 8)
-	if _, err := rand.Read(id); err != nil {
+	if _, err := cryptorand.Read(id); err != nil {
 		return ""
 	}
 
@@ -207,7 +209,7 @@ func (r *Rotator) Rotate() error {
 	keys := make([]*Key, 0, r.settings.RotationKeyCount)
 	for i := 0; i < r.settings.RotationKeyCount; i++ {
 		keyID := make([]byte, KeySize256)
-		if _, err := rand.Read(keyID); err != nil {
+		if _, err := cryptorand.Read(keyID); err != nil {
 			return err
 		}
 
