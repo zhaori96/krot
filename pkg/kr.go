@@ -128,6 +128,10 @@ func generateInstanceID() string {
 	return fmt.Sprintf("kr#%x", id)
 }
 
+func (r *Rotator) ID() string {
+	return r.id
+}
+
 func (r *Rotator) Status() RotatorStatus {
 	return r.status
 }
