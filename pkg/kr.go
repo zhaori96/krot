@@ -120,12 +120,12 @@ func NewWithSettings(settings *RotatorSettings) (*Rotator, error) {
 }
 
 func generateInstanceID() string {
-	id := make([]byte, KeySize128)
+	id := make([]byte, 8)
 	if _, err := rand.Read(id); err != nil {
 		return ""
 	}
 
-	return fmt.Sprintf("kr#%s", string(id))
+	return fmt.Sprintf("kr#%x", id)
 }
 
 func (r *Rotator) Status() RotatorStatus {
