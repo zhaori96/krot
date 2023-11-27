@@ -97,6 +97,8 @@ type Rotator struct {
 	generator KeyGenerator
 	cleaner   KeyCleaner
 
+	lastGeneratedKeyIDs []string
+
 	hooksBeforeRotation RotatorHooks
 	hooksAfterRotation  RotatorHooks
 }
@@ -200,12 +202,49 @@ func (r *Rotator) AfterRotation(hooks ...RotatorHook) {
 	r.hooksAfterRotation = append(r.hooksAfterRotation, hooks...)
 }
 
+func (r *Rotator) GetKeyID() (string, error) {
+	r.controller.Lock()
+	defer r.controller.Unlock()
+
+	return r.getRandomKeyID()
+}
+
+func (r *Rotator) GetKeyByID(id string) (*Key, error) {
+	r.controller.Lock()
+	defer r.controller.Unlock()
+
+	key, err := r.storage.Get(context.Background(), id)
+	if err != nil {
+		return nil, err
+	}
+
+	return key, nil
+}
+
+func (r *Rotator) GetKey() (*Key, error) {
+	r.controller.Lock()
+	defer r.controller.Unlock()
+
+	id, err := r.getRandomKeyID()
+	if err != nil {
+		return nil, err
+	}
+
+	key, err := r.storage.Get(context.Background(), id)
+	if err != nil {
+		return nil, err
+	}
+
+	return key, nil
+}
+
 func (r *Rotator) Rotate() error {
 	r.controller.Lock()
 	defer r.controller.Unlock()
 
 	r.hooksBeforeRotation.Run(r)
 
+	r.lastGeneratedKeyIDs = make([]string, 0, r.settings.RotationKeyCount)
 	keys := make([]*Key, 0, r.settings.RotationKeyCount)
 	for i := 0; i < r.settings.RotationKeyCount; i++ {
 		keyID := make([]byte, KeySize256)
@@ -230,7 +269,8 @@ func (r *Rotator) Rotate() error {
 			Expires: keyExpiration,
 		}
 
-		keys = append(keys, key)
+		keys[i] = key
+		r.lastGeneratedKeyIDs[i]= key.ID
 	}
 
 	err := r.storage.Add(context.Background(), keys...)
@@ -302,4 +342,13 @@ func (r *Rotator) run() error {
 
 		r.state = RotatorStateIdle
 	}
+}
+
+func (r *Rotator) getRandomKeyID() (string, error) {
+	if len(r.lastGeneratedKeyIDs) == 0 {
+		return "", ErrNoKeysGenerated
+	}
+
+	id := r.lastGeneratedKeyIDs[mathrand.Intn(len(r.lastGeneratedKeyIDs))]
+	return id, nil
 }
