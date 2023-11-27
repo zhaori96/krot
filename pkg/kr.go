@@ -234,8 +234,6 @@ func (r *Rotator) Rotate() error {
 }
 
 func (r *Rotator) Start() error {
-	r.controller = NewRotationController()
-
 	if r.status == RotatorStatusActive {
 		return ErrRotatorAlreadyRunning
 	}
@@ -251,6 +249,9 @@ func (r *Rotator) Start() error {
 	if r.settings == nil {
 		r.settings = DefaultRotatorSettings()
 	}
+
+	r.controller = NewRotationController()
+	r.cleaner = NewKeyCleaner(r.storage)
 
 	r.status = RotatorStatusActive
 
