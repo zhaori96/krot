@@ -169,8 +169,12 @@ func (r *Rotator) AutoClearExpiredKeys() bool {
 }
 
 func (r *Rotator) SetSettings(settings *RotatorSettings) error {
+	if r.status == RotatorStatusActive {
+		panic("cannot set settings while rotator is running")
+	}
+
 	if settings == nil {
-		return fmt.Errorf("%w: settings cannot be nil", ErrInvalidSettings)
+		return fmt.Errorf("%w: settings cannot be nil", ErrInvalidArgument)
 	}
 
 	if err := settings.Validate(); err != nil {
