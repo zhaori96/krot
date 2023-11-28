@@ -250,10 +250,11 @@ func (r *Rotator) Rotate() error {
 	r.controller.Lock()
 	defer r.controller.Unlock()
 
+
 	r.hooksBeforeRotation.Run(r)
 
-	r.lastGeneratedKeyIDs = make([]string, 0, r.settings.RotationKeyCount)
-	keys := make([]*Key, 0, r.settings.RotationKeyCount)
+	r.lastGeneratedKeyIDs = make([]string, r.settings.RotationKeyCount)
+	keys := make([]*Key, r.settings.RotationKeyCount)
 	for i := 0; i < r.settings.RotationKeyCount; i++ {
 		keyID := make([]byte, KeySize256)
 		if _, err := cryptorand.Read(keyID); err != nil {
