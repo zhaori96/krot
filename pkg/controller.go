@@ -40,11 +40,6 @@ func (c *RotationController) Disposed() bool {
 	}
 }
 
-func (c *RotationController) WaitWithCallback(callback func()) {
-	<-c.context.Done()
-	callback()
-}
-
 func (c *RotationController) Dipose() {
 	c.cancel()
 }
