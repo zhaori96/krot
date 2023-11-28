@@ -7,9 +7,25 @@ import (
 	"time"
 )
 
+// KeyCleaner defines the interface for managing key expiration. It provides
+// methods for adding keys with expiration times, starting the cleaner, and
+// stopping the cleaner.
 type KeyCleaner interface {
+	// Add adds a key with the specified ID and expiration time to the cleaner.
+	//
+	//     cleaner.Add("keyID", time.Now().Add(24 * time.Hour))
 	Add(id string, expiration time.Time)
+
+	// Start begins the key cleaning process. It requires a context for managing
+	// timeouts and cancellations.
+	//
+	//     ctx := context.Background()
+	//     cleaner.Start(ctx)
 	Start(ctx context.Context)
+
+	// Stop halts the key cleaning process.
+	//
+	//     cleaner.Stop()
 	Stop()
 }
 

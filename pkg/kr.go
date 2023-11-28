@@ -9,8 +9,11 @@ import (
 	mathrand "math/rand"
 )
 
+// RotatorHook is a function that is called before or after a rotation.
 type RotatorHook func(rotator *Rotator)
 
+// RotatorHooks is a collection of RotatorHook functions.
+// It implements the Run method which runs all the hooks in the collection.
 type RotatorHooks []RotatorHook
 
 func (h RotatorHooks) Run(rotator *Rotator) {
@@ -19,33 +22,64 @@ func (h RotatorHooks) Run(rotator *Rotator) {
 	}
 }
 
+// RotatorState is the state of the rotator.
 type RotatorState uint
 
 const (
+	// RotatorStateIdle is the state of the rotator when it is not rotating.
 	RotatorStateIdle RotatorState = iota
+
+	// RotatorStateRotating is the state of the rotator when it is rotating.
 	RotatorStateRotating
 )
 
+// RotatorStatus is the status of the rotator.
 type RotatorStatus uint
 
 const (
+	// RotatorStatusInactive is the status of the rotator when it is not running.
 	RotatorStatusInactive RotatorStatus = iota
+
+	// RotatorStatusActive is the status of the rotator when it is running.
 	RotatorStatusActive
 )
 
 const (
-	DefaultRotationKeyCount int           = 5
-	DefaultKeyExpiration    time.Duration = 12 * time.Hour
+	// DefaultRotationKeyCount is the default number of keys to rotate.
+	DefaultRotationKeyCount int = 5
+
+	// DefaultKeyExpiration is the default expiration time for a key.
+	// The key expiration is calculated as follows:
+	//   key expiration = current time + rotation interval + key expiration
+	DefaultKeyExpiration time.Duration = 12 * time.Hour
+
+	// DefaultRotationInterval is the default interval between rotations.
+	// The rotation interval is calculated as follows:
+	//   rotation interval = current time + rotation interval
 	DefaultRotationInterval time.Duration = 12 * time.Hour
 )
 
+// RotatorSettings is the settings for the rotator.
 type RotatorSettings struct {
+	// RotationKeyCount is the number of keys to rotate.
+	// The default value is DefaultRotationKeyCount.
+	// The minimum value is 1.
 	RotationKeyCount     int
+
+	// KeyExpiration is the expiration time for a key.
+	// The default value is DefaultKeyExpiration.
 	KeyExpiration        time.Duration
+
+	// RotationInterval is the interval between rotations.
+	// The default value is DefaultRotationInterval.
 	RotationInterval     time.Duration
+
+	// AutoClearExpiredKeys is a flag that indicates whether to automatically clear expired keys.
+	// The default value is true.
 	AutoClearExpiredKeys bool
 }
 
+// DefaultRotatorSettings returns the default rotator settings.
 func DefaultRotatorSettings() *RotatorSettings {
 	return &RotatorSettings{
 		RotationKeyCount:     DefaultRotationKeyCount,
@@ -55,6 +89,7 @@ func DefaultRotatorSettings() *RotatorSettings {
 	}
 }
 
+// Validate validates the rotator settings.
 func (s *RotatorSettings) Validate() error {
 	if s.RotationKeyCount < 1 {
 		return fmt.Errorf(
@@ -83,6 +118,10 @@ func (s *RotatorSettings) Validate() error {
 	return nil
 }
 
+
+// Rotator is a concurrent-safe key rotation manager.
+// It generates and stores new keys at regular intervals while cleaning up expired keys.
+// Suitable for rotating keys in encryption, decryption, signing, verification, and authentication.
 type Rotator struct {
 	id string
 
@@ -103,6 +142,8 @@ type Rotator struct {
 	hooksAfterRotation  RotatorHooks
 }
 
+// New returns a newly initialized key rotator with default settings, storage, and key generator.
+// Settings, storage and key generator can be set using the SetSettings, SetStorage, and SetGenerator methods.
 func New() *Rotator {
 	rotator := &Rotator{
 		id: generateInstanceID(),
@@ -111,6 +152,8 @@ func New() *Rotator {
 	return rotator
 }
 
+// NewWithSettings returns a newly initialized key rotator with the given settings.
+// Storage and key generator can be set using the SetStorage and SetGenerator methods.
 func NewWithSettings(settings *RotatorSettings) (*Rotator, error) {
 	rotator := &Rotator{
 		id: generateInstanceID(),
@@ -132,10 +175,14 @@ func generateInstanceID() string {
 	return fmt.Sprintf("kr#%x", id)
 }
 
+// ID returns the unique identifier associated with the rotator.
+// This identifier, generated upon creation, is used for storage and key generation.
 func (r *Rotator) ID() string {
 	return r.id
 }
 
+// Status returns the current operational status of the rotator, which is either active or inactive.
+// The rotator is considered active while running and marked as inactive when not in operation.
 func (r *Rotator) Status() RotatorStatus {
 	return r.status
 }
@@ -144,6 +191,8 @@ func (r *Rotator) setStatus(status RotatorStatus) {
 	r.status = status
 }
 
+// State returns the current state of the rotator, which is either idle or rotating.
+// The rotator is considered idle when not rotating and marked as rotating when in operation.
 func (r *Rotator) State() RotatorState {
 	return r.state
 }
@@ -152,22 +201,38 @@ func (r *Rotator) setState(state RotatorState) {
 	r.state = state
 }
 
+// RotationKeyCount returns the RotationKeyCount field of the Rotator's settings.
+// It indicates the number of keys the Rotator is configured to keep when rotating keys.
 func (r *Rotator) RotationKeyCount() int {
 	return r.settings.RotationKeyCount
 }
 
+// KeyExpiration returns the KeyExpiration field of the Rotator's settings.
+// It indicates the duration after which the keys generated by the Rotator are configured to expire.
 func (r *Rotator) KeyExpiration() time.Duration {
 	return r.settings.KeyExpiration
 }
 
+// RotationInterval returns the RotationInterval field of the Rotator's settings.
+// It indicates the duration after which the Rotator is configured to rotate keys.
 func (r *Rotator) RotationInterval() time.Duration {
 	return r.settings.RotationInterval
 }
 
+
+// AutoClearExpiredKeys returns the AutoClearExpiredKeys field of the Rotator's settings.
+// It indicates whether the Rotator is configured to automatically clear expired keys.
 func (r *Rotator) AutoClearExpiredKeys() bool {
 	return r.settings.AutoClearExpiredKeys
 }
 
+// SetSettings sets the settings field of the Rotator struct.
+// It accepts a RotatorSettings type as an argument and returns an error.
+// If the Rotator is currently active (i.e., r.status == RotatorStatusActive),
+// the method immediately panics.
+// This is a safety measure to prevent changing the settings while the Rotator is in use.
+// If the provided RotatorSettings is nil, or if the settings are invalid,
+// the method returns an appropriate error.
 func (r *Rotator) SetSettings(settings *RotatorSettings) error {
 	if r.status == RotatorStatusActive {
 		panic("cannot set settings while rotator is running")
@@ -185,6 +250,12 @@ func (r *Rotator) SetSettings(settings *RotatorSettings) error {
 	return nil
 }
 
+// SetStorage sets the storage field of the Rotator struct.
+// It accepts a KeyStorage type as an argument and returns an error.
+// If the Rotator is currently active (i.e., r.status == RotatorStatusActive),
+// the method immediately panics.
+// This is a safety measure to prevent changing the storage while the Rotator is in use.
+// If the provided KeyStorage is nil, the method returns an ErrInvalidArgument.
 func (r *Rotator) SetStorage(storage KeyStorage) error {
 	if r.status == RotatorStatusActive {
 		panic("cannot set storage while rotator is running")
@@ -198,6 +269,12 @@ func (r *Rotator) SetStorage(storage KeyStorage) error {
 	return nil
 }
 
+// SetGenerator sets the generator field of the Rotator struct.
+// It accepts a KeyGenerator type as an argument and returns an error.
+// If the Rotator is currently active (i.e., r.status == RotatorStatusActive),
+// the method immediately panics.
+// This is a safety measure to prevent changing the generator while the Rotator is in use.
+// If the provided KeyGenerator is nil, the method returns an ErrInvalidArgument.
 func (r *Rotator) SetGenerator(generator KeyGenerator) error {
 	if r.status == RotatorStatusActive {
 		panic("cannot set generator while rotator is running")
@@ -211,14 +288,20 @@ func (r *Rotator) SetGenerator(generator KeyGenerator) error {
 	return nil
 }
 
+// BeforeRotation appends provided hooks to the beginning of the Rotator's hooksBeforeRotation slice.
+// These hooks are executed before a rotation occurs.
 func (r *Rotator) BeforeRotation(hooks ...RotatorHook) {
 	r.hooksBeforeRotation = append(hooks, r.hooksBeforeRotation...)
 }
 
+// AfterRotation appends provided hooks to the end of the Rotator's hooksAfterRotation slice.
+// These hooks are executed after a rotation occurs.
 func (r *Rotator) AfterRotation(hooks ...RotatorHook) {
 	r.hooksAfterRotation = append(r.hooksAfterRotation, hooks...)
 }
 
+// GetKeyID retrieves a random key ID from the Rotator.
+// It returns the retrieved key ID and any error that occurred.
 func (r *Rotator) GetKeyID() (string, error) {
 	r.controller.Lock()
 	defer r.controller.Unlock()
@@ -226,6 +309,8 @@ func (r *Rotator) GetKeyID() (string, error) {
 	return r.getRandomKeyID()
 }
 
+// GetKeyByID retrieves a key from the Rotator's storage by its ID.
+// It returns the retrieved key and any error that occurred.
 func (r *Rotator) GetKeyByID(id string) (*Key, error) {
 	r.controller.Lock()
 	defer r.controller.Unlock()
@@ -238,6 +323,8 @@ func (r *Rotator) GetKeyByID(id string) (*Key, error) {
 	return key, nil
 }
 
+// GetKey retrieves a random key from the Rotator's storage.
+// It returns the retrieved key and any error that occurred.
 func (r *Rotator) GetKey() (*Key, error) {
 	r.controller.Lock()
 	defer r.controller.Unlock()
@@ -255,6 +342,11 @@ func (r *Rotator) GetKey() (*Key, error) {
 	return key, nil
 }
 
+// Rotate generates a new set of keys and stores them in the Rotator's storage.
+// It first sets the Rotator's state to Rotating, runs any BeforeRotation hooks,
+// and then generates and stores the new keys.
+// After storing the keys, it runs any AfterRotation hooks and sets the state back to Idle.
+// It returns any error that occurred during the process.
 func (r *Rotator) Rotate() error {
 	r.controller.Lock()
 	defer r.controller.Unlock()
@@ -302,6 +394,31 @@ func (r *Rotator) Rotate() error {
 	return nil
 }
 
+// Start initiates the key rotation process. If components like the key generator,
+// storage, rotation settings, rotation controller, or key cleaner are not set,
+// they are initialized with default values. The Rotator's status is then set to
+// active, and the rotation and cleaning processes are launched in separate goroutines.
+//
+// If the Rotator is already active when Start is called, it returns an
+// ErrRotatorAlreadyRunning error. If an error occurs during the initial key rotation,
+// the error is returned and the Rotator does not start.
+//
+// By default, the key generator is a KeyGenerator with a key size of 256 bits. The
+// storage is a new KeyStorage instance, and the rotation settings are the
+// DefaultRotatorSettings. These defaults are used if the corresponding components
+// are not set before calling Start.
+//
+// This method is safe for concurrent use.
+//
+// Example:
+//     rotator := NewRotator()
+//     err := rotator.Start()
+//     if err != nil {
+//         log.Fatal(err)
+//     }
+//     defer rotator.Stop()
+//
+// If the Rotator starts successfully, Start returns nil.
 func (r *Rotator) Start() error {
 	if r.status == RotatorStatusActive {
 		return ErrRotatorAlreadyRunning
@@ -334,6 +451,24 @@ func (r *Rotator) Start() error {
 	return nil
 }
 
+// Stop halts the key rotation process. If the Rotator is already inactive, it
+// immediately returns. Otherwise, it disposes the rotation controller, stops the
+// key cleaner, and sets the Rotator's status to inactive.
+//
+// This method is safe to call even if the Rotator is already stopped or has not been
+// started. It ensures that the key rotation and cleaning processes are properly
+// terminated.
+//
+// Example:
+//     rotator := NewRotator()
+//     err := rotator.Start()
+//     if err != nil {
+//         log.Fatal(err)
+//     }
+//     // ... use the rotator ...
+//     rotator.Stop()
+//
+// After calling Stop, the Rotator can be restarted with the Start method.
 func (r *Rotator) Stop() {
 	if r.status == RotatorStatusInactive {
 		return
