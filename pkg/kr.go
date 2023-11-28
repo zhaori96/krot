@@ -336,26 +336,16 @@ func (r *Rotator) Stop() {
 }
 
 func (r *Rotator) run() error {
-	defer func() {
-		r.state = RotatorStateIdle
-	}()
-
-	if err := r.Rotate(); err != nil {
-		return err
-	}
-
 	for {
 		if r.controller.Disposed() {
 			return nil
 		}
 
 		time.Sleep(r.settings.RotationInterval)
-		r.state = RotatorStateRotating
+
 		if err := r.Rotate(); err != nil {
 			return err
 		}
-
-		r.state = RotatorStateIdle
 	}
 }
 
