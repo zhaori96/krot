@@ -182,7 +182,6 @@ func (r *Rotator) SetSettings(settings *RotatorSettings) error {
 	}
 
 	r.settings = settings
-
 	return nil
 }
 
