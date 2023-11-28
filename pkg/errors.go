@@ -15,4 +15,5 @@ const (
 	ErrInvalidKeyExpiration    = KeyRotatorError("invalid key expiration")
 	ErrRotatorAlreadyRunning   = KeyRotatorError("rotator already running")
 	ErrNoKeysGenerated         = KeyRotatorError("no keys generated")
+	ErrInvalidArgument         = KeyRotatorError("invalid argument")
 )
