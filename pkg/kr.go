@@ -64,15 +64,15 @@ type RotatorSettings struct {
 	// RotationKeyCount is the number of keys to rotate.
 	// The default value is DefaultRotationKeyCount.
 	// The minimum value is 1.
-	RotationKeyCount     int
+	RotationKeyCount int
 
 	// KeyExpiration is the expiration time for a key.
 	// The default value is DefaultKeyExpiration.
-	KeyExpiration        time.Duration
+	KeyExpiration time.Duration
 
 	// RotationInterval is the interval between rotations.
 	// The default value is DefaultRotationInterval.
-	RotationInterval     time.Duration
+	RotationInterval time.Duration
 
 	// AutoClearExpiredKeys is a flag that indicates whether to automatically clear expired keys.
 	// The default value is true.
@@ -117,7 +117,6 @@ func (s *RotatorSettings) Validate() error {
 
 	return nil
 }
-
 
 // Rotator is a concurrent-safe key rotation manager.
 // It generates and stores new keys at regular intervals while cleaning up expired keys.
@@ -218,7 +217,6 @@ func (r *Rotator) KeyExpiration() time.Duration {
 func (r *Rotator) RotationInterval() time.Duration {
 	return r.settings.RotationInterval
 }
-
 
 // AutoClearExpiredKeys returns the AutoClearExpiredKeys field of the Rotator's settings.
 // It indicates whether the Rotator is configured to automatically clear expired keys.
@@ -411,12 +409,13 @@ func (r *Rotator) Rotate() error {
 // This method is safe for concurrent use.
 //
 // Example:
-//     rotator := NewRotator()
-//     err := rotator.Start()
-//     if err != nil {
-//         log.Fatal(err)
-//     }
-//     defer rotator.Stop()
+//
+//	rotator := NewRotator()
+//	err := rotator.Start()
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	defer rotator.Stop()
 //
 // If the Rotator starts successfully, Start returns nil.
 func (r *Rotator) Start() error {
@@ -460,13 +459,14 @@ func (r *Rotator) Start() error {
 // terminated.
 //
 // Example:
-//     rotator := NewRotator()
-//     err := rotator.Start()
-//     if err != nil {
-//         log.Fatal(err)
-//     }
-//     // ... use the rotator ...
-//     rotator.Stop()
+//
+//	rotator := NewRotator()
+//	err := rotator.Start()
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	// ... use the rotator ...
+//	rotator.Stop()
 //
 // After calling Stop, the Rotator can be restarted with the Start method.
 func (r *Rotator) Stop() {
