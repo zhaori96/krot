@@ -1,3 +1,15 @@
+// Package kr provides a comprehensive system for managing key rotation in secure
+// applications. It includes components for generating, storing, and cleaning keys,
+// as well as managing key rotation and expiration.
+//
+// The key rotation system is controlled by a Rotator, which uses a KeyGenerator to
+// create new keys, a KeyStorage to store and retrieve keys, and a KeyCleaner to
+// remove expired keys. The Rotator can be started and stopped, and its operation
+// can be customized with various settings.
+//
+// The package also defines a Key type, which represents a key with an ID, value,
+// and expiration time, and a KeyRotatorError type, which represents an error in
+// the key rotation process.
 package kr
 
 import (
