@@ -198,16 +198,17 @@ func (r *Rotator) SetStorage(storage KeyStorage) error {
 	return nil
 }
 
-func (r *Rotator) SetGenerator(generator KeyGenerator) {
+func (r *Rotator) SetGenerator(generator KeyGenerator) error {
 	if r.status == RotatorStatusActive {
 		panic("cannot set generator while rotator is running")
 	}
 
 	if generator == nil {
-		panic("generator cannot be nil")
+		return fmt.Errorf("%w: generator cannot be nil", ErrInvalidArgument)
 	}
 
 	r.generator = generator
+	return nil
 }
 
 func (r *Rotator) BeforeRotation(hooks ...RotatorHook) {
