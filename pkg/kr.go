@@ -152,20 +152,6 @@ func (r *Rotator) setState(state RotatorState) {
 	r.state = state
 }
 
-func (r *Rotator) SetSettings(settings *RotatorSettings) error {
-	if settings == nil {
-		return fmt.Errorf("%w: settings cannot be nil", ErrInvalidSettings)
-	}
-
-	if err := settings.Validate(); err != nil {
-		return fmt.Errorf("%w: %w", ErrInvalidSettings, err)
-	}
-
-	r.settings = settings
-
-	return nil
-}
-
 func (r *Rotator) RotationKeyCount() int {
 	return r.settings.RotationKeyCount
 }
@@ -180,6 +166,20 @@ func (r *Rotator) RotationInterval() time.Duration {
 
 func (r *Rotator) AutoClearExpiredKeys() bool {
 	return r.settings.AutoClearExpiredKeys
+}
+
+func (r *Rotator) SetSettings(settings *RotatorSettings) error {
+	if settings == nil {
+		return fmt.Errorf("%w: settings cannot be nil", ErrInvalidSettings)
+	}
+
+	if err := settings.Validate(); err != nil {
+		return fmt.Errorf("%w: %w", ErrInvalidSettings, err)
+	}
+
+	r.settings = settings
+
+	return nil
 }
 
 func (r *Rotator) SetStorage(storage KeyStorage) {
