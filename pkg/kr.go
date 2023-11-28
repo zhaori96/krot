@@ -313,7 +313,11 @@ func (r *Rotator) Start() error {
 	r.controller = NewRotationController()
 	r.cleaner = NewKeyCleaner(r.storage)
 
-	r.status = RotatorStatusActive
+	r.setStatus(RotatorStatusActive)
+
+	if err := r.Rotate(); err != nil {
+		return err
+	}
 
 	go r.run()
 	go r.cleaner.Start(context.Background())
