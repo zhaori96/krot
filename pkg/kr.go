@@ -250,6 +250,8 @@ func (r *Rotator) Rotate() error {
 	r.controller.Lock()
 	defer r.controller.Unlock()
 
+	r.setState(RotatorStateRotating)
+	defer r.setState(RotatorStateIdle)
 
 	r.hooksBeforeRotation.Run(r)
 
