@@ -140,8 +140,16 @@ func (r *Rotator) Status() RotatorStatus {
 	return r.status
 }
 
+func (r *Rotator) setStatus(status RotatorStatus) {
+	r.status = status
+}
+
 func (r *Rotator) State() RotatorState {
 	return r.state
+}
+
+func (r *Rotator) setState(state RotatorState) {
+	r.state = state
 }
 
 func (r *Rotator) SetSettings(settings *RotatorSettings) error {
