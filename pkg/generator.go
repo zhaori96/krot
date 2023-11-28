@@ -1,6 +1,9 @@
 package kr
 
-import "crypto/rand"
+import (
+	"crypto/rand"
+	"encoding/hex"
+)
 
 type KeySize int
 
@@ -40,5 +43,5 @@ func (g *keyGenerator) Generate() (any, error) {
 		return nil, err
 	}
 
-	return key, nil
+	return hex.EncodeToString(key), nil
 }
