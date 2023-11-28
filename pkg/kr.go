@@ -281,7 +281,7 @@ func (r *Rotator) Rotate() error {
 		}
 
 		keys[i] = key
-		r.lastGeneratedKeyIDs[i]= key.ID
+		r.lastGeneratedKeyIDs[i] = key.ID
 	}
 
 	err := r.storage.Add(context.Background(), keys...)
