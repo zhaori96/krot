@@ -332,7 +332,7 @@ func (r *Rotator) Stop() {
 
 	r.controller.Dipose()
 	r.cleaner.Stop()
-	r.status = RotatorStatusInactive
+	r.setStatus(RotatorStatusInactive)
 }
 
 func (r *Rotator) run() error {
