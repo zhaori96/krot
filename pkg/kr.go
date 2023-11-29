@@ -68,11 +68,11 @@ const (
 type RotatorStatus uint
 
 const (
-	// RotatorStatusInactive is the status of the rotator when it is not running.
-	RotatorStatusInactive RotatorStatus = iota
+	// RotatorStatusStopped is the status of the rotator when it is not running.
+	RotatorStatusStopped RotatorStatus = iota
 
-	// RotatorStatusActive is the status of the rotator when it is running.
-	RotatorStatusActive
+	// RotatorStatusStarted is the status of the rotator when it is running.
+	RotatorStatusStarted
 )
 
 const (
@@ -299,7 +299,7 @@ func AutoClearExpiredKeys() bool { return rotator.AutoClearExpiredKeys() }
 // If the provided RotatorSettings is nil, or if the settings are invalid,
 // the method returns an appropriate error.
 func (r *Rotator) SetSettings(settings *RotatorSettings) error {
-	if r.status == RotatorStatusActive {
+	if r.status == RotatorStatusStarted {
 		panic("cannot set settings while rotator is running")
 	}
 
@@ -331,7 +331,7 @@ func SetSettings(settings *RotatorSettings) error { return rotator.SetSettings(s
 // This is a safety measure to prevent changing the storage while the Rotator is in use.
 // If the provided KeyStorage is nil, the method returns an ErrInvalidArgument.
 func (r *Rotator) SetStorage(storage KeyStorage) error {
-	if r.status == RotatorStatusActive {
+	if r.status == RotatorStatusStarted {
 		panic("cannot set storage while rotator is running")
 	}
 
@@ -358,7 +358,7 @@ func SetStorage(storage KeyStorage) error { return rotator.SetStorage(storage) }
 // This is a safety measure to prevent changing the generator while the Rotator is in use.
 // If the provided KeyGenerator is nil, the method returns an ErrInvalidArgument.
 func (r *Rotator) SetGenerator(generator KeyGenerator) error {
-	if r.status == RotatorStatusActive {
+	if r.status == RotatorStatusStarted {
 		panic("cannot set generator while rotator is running")
 	}
 
@@ -554,7 +554,7 @@ func Rotate() error { return rotator.Rotate() }
 //
 // If the Rotator starts successfully, Start returns nil.
 func (r *Rotator) Start() error {
-	if r.status == RotatorStatusActive {
+	if r.status == RotatorStatusStarted {
 		return ErrRotatorAlreadyRunning
 	}
 
@@ -582,7 +582,7 @@ func (r *Rotator) Start() error {
 
 	go r.run()
 
-	r.setStatus(RotatorStatusActive)
+	r.setStatus(RotatorStatusStarted)
 	r.onStartHooks.Run(r)
 
 	return nil
@@ -636,13 +636,13 @@ func Start() error { return rotator.Start() }
 //
 // After calling Stop, the Rotator can be restarted with the Start method.
 func (r *Rotator) Stop() {
-	if r.status == RotatorStatusInactive {
+	if r.status == RotatorStatusStopped {
 		return
 	}
 
 	r.controller.TurnOff()
 	r.cleaner.Stop()
-	r.setStatus(RotatorStatusInactive)
+	r.setStatus(RotatorStatusStopped)
 
 	r.onStopHooks.Run(r)
 }
