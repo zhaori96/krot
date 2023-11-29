@@ -40,6 +40,19 @@ func (h RotatorHooks) Run(rotator *Rotator) {
 	}
 }
 
+var (
+	// EraseStorageHook is a predefined function that implements the RotatorHook interface.
+	// When executed, it erases all keys from the associated Rotator's storage.
+	// This is achieved by creating a new background context and invoking the Erase method of the Rotator's storage.
+	// This hook is typically used when you want to clear all keys from the storage, such as during starting or stopping of the Rotator.
+	//
+	// Example usage:
+	// 	rotator.OnStart(kr.EraseStorageHook)
+	EraseStorageHook RotatorHook = func(rotator *Rotator) {
+		rotator.storage.Erase(context.Background())
+	}
+)
+
 // RotatorState is the state of the rotator.
 type RotatorState uint
 
@@ -154,6 +167,9 @@ type Rotator struct {
 	cleaner   KeyCleaner
 
 	lastGeneratedKeyIDs []string
+
+	onStartHooks RotatorHooks
+	onStopHooks  RotatorHooks
 
 	hooksBeforeRotation RotatorHooks
 	hooksAfterRotation  RotatorHooks
@@ -362,6 +378,22 @@ func (r *Rotator) SetGenerator(generator KeyGenerator) error {
 // If the provided KeyGenerator is nil, the method returns an ErrInvalidArgument.
 func SetGenerator(generator KeyGenerator) error { return rotator.SetGenerator(generator) }
 
+// OnStart appends provided hooks that can be called when the Rotator starts.
+func (r *Rotator) OnStart(hooks ...RotatorHook) {
+	r.onStartHooks = append(r.onStartHooks, hooks...)
+}
+
+// OnStart appends provided hooks that can be called when the Rotator starts.
+func OnStart(hooks ...RotatorHook) { rotator.OnStart(hooks...) }
+
+// OnStop appends provided hooks that can be called when the Rotator stops.
+func (r *Rotator) OnStop(hooks ...RotatorHook) {
+	r.onStopHooks = append(r.onStopHooks, hooks...)
+}
+
+// OnStop appends provided hooks that can be called when the Rotator stops.
+func OnStop(hooks ...RotatorHook) { rotator.OnStop(hooks...) }
+
 // BeforeRotation appends provided hooks to the beginning of the Rotator's hooksBeforeRotation slice.
 // These hooks are executed before a rotation occurs.
 func (r *Rotator) BeforeRotation(hooks ...RotatorHook) {
@@ -550,6 +582,8 @@ func (r *Rotator) Start() error {
 	}
 
 	go r.run()
+	r.onStartHooks.Run(r)
+
 	return nil
 }
 
@@ -608,6 +642,8 @@ func (r *Rotator) Stop() {
 	r.controller.TurnOff()
 	r.cleaner.Stop()
 	r.setStatus(RotatorStatusInactive)
+
+	r.onStopHooks.Run(r)
 }
 
 // Stop halts the key rotation process. If the Rotator is already inactive, it
