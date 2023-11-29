@@ -179,7 +179,10 @@ type Rotator struct {
 // Settings, storage and key generator can be set using the SetSettings, SetStorage, and SetGenerator methods.
 func New() *Rotator {
 	rotator := &Rotator{
-		id: generateInstanceID(),
+		id:        generateInstanceID(),
+		generator: NewKeyGenerator(KeySize256),
+		storage:   NewKeyStorage(),
+		settings:  DefaultRotatorSettings(),
 	}
 
 	return rotator
@@ -189,7 +192,9 @@ func New() *Rotator {
 // Storage and key generator can be set using the SetStorage and SetGenerator methods.
 func NewWithSettings(settings *RotatorSettings) (*Rotator, error) {
 	rotator := &Rotator{
-		id: generateInstanceID(),
+		id:        generateInstanceID(),
+		generator: NewKeyGenerator(KeySize256),
+		storage:   NewKeyStorage(),
 	}
 
 	if err := rotator.SetSettings(settings); err != nil {
@@ -536,11 +541,6 @@ func Rotate() error { return rotator.Rotate() }
 // ErrRotatorAlreadyRunning error. If an error occurs during the initial key rotation,
 // the error is returned and the Rotator does not start.
 //
-// By default, the key generator is a KeyGenerator with a key size of 256 bits. The
-// storage is a new KeyStorage instance, and the rotation settings are the
-// DefaultRotatorSettings. These defaults are used if the corresponding components
-// are not set before calling Start.
-//
 // This method is safe for concurrent use.
 //
 // Example:
@@ -556,19 +556,6 @@ func Rotate() error { return rotator.Rotate() }
 func (r *Rotator) Start() error {
 	if r.status == RotatorStatusStarted {
 		return ErrRotatorAlreadyRunning
-	}
-
-	//TODO: remove all these if statements and set the defaults in the New method
-	if r.generator == nil {
-		r.generator = NewKeyGenerator(KeySize256)
-	}
-
-	if r.storage == nil {
-		r.storage = NewKeyStorage()
-	}
-
-	if r.settings == nil {
-		r.settings = DefaultRotatorSettings()
 	}
 
 	if r.settings.AutoClearExpiredKeys {
@@ -596,11 +583,6 @@ func (r *Rotator) Start() error {
 // If the Rotator is already active when Start is called, it returns an
 // ErrRotatorAlreadyRunning error. If an error occurs during the initial key rotation,
 // the error is returned and the Rotator does not start.
-//
-// By default, the key generator is a KeyGenerator with a key size of 256 bits. The
-// storage is a new KeyStorage instance, and the rotation settings are the
-// DefaultRotatorSettings. These defaults are used if the corresponding components
-// are not set before calling Start.
 //
 // This method is safe for concurrent use.
 //
