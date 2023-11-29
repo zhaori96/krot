@@ -558,6 +558,7 @@ func (r *Rotator) Start() error {
 		return ErrRotatorAlreadyRunning
 	}
 
+	//TODO: remove all these if statements and set the defaults in the New method
 	if r.generator == nil {
 		r.generator = NewKeyGenerator(KeySize256)
 	}
@@ -570,18 +571,18 @@ func (r *Rotator) Start() error {
 		r.settings = DefaultRotatorSettings()
 	}
 
+	if r.settings.AutoClearExpiredKeys {
+		r.cleaner.Start(context.Background())
+	}
+
 	r.controller.TurnOn()
-
-	r.cleaner = NewKeyCleaner(r.storage)
-	r.cleaner.Start(context.Background())
-
-	r.setStatus(RotatorStatusActive)
-
 	if err := r.Rotate(); err != nil {
 		return err
 	}
 
 	go r.run()
+
+	r.setStatus(RotatorStatusActive)
 	r.onStartHooks.Run(r)
 
 	return nil
