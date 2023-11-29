@@ -539,7 +539,9 @@ func (r *Rotator) Start() error {
 	}
 
 	r.controller = NewRotationController()
+
 	r.cleaner = NewKeyCleaner(r.storage)
+	r.cleaner.Start(context.Background())
 
 	r.setStatus(RotatorStatusActive)
 
@@ -548,8 +550,6 @@ func (r *Rotator) Start() error {
 	}
 
 	go r.run()
-	go r.cleaner.Start(context.Background())
-
 	return nil
 }
 

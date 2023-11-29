@@ -60,10 +60,14 @@ func (c *keyCleaner) Add(id string, expiration time.Time) {
 }
 
 func (c *keyCleaner) Start(ctx context.Context) {
+	c.ctx, c.cancel = context.WithCancel(ctx)
+	go c.run()
+}
+
+func (c *keyCleaner) run() {
 	c.locker.Lock()
 	defer c.locker.Unlock()
 
-	c.ctx, c.cancel = context.WithCancel(ctx)
 	for {
 		select {
 		case <-c.ctx.Done():
@@ -80,7 +84,7 @@ func (c *keyCleaner) Start(ctx context.Context) {
 				c.ids = c.ids[1:]
 				c.expirations = c.expirations[1:]
 
-				err := c.storage.Delete(ctx, id)
+				err := c.storage.Delete(c.ctx, id)
 				if err != nil {
 					log.Printf("failed to delete key %s: %v", id, err)
 				}
