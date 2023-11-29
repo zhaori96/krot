@@ -6,21 +6,20 @@ import (
 )
 
 type RotationController struct {
-	context context.Context
-	cancel  context.CancelFunc
-	mutex   sync.Mutex
+	ctx    context.Context
+	cancel context.CancelFunc
+	mutex  sync.Mutex
 }
 
 func NewRotationController() *RotationController {
-	ctx, cancel := context.WithCancel(context.Background())
-	return &RotationController{
-		context: ctx,
-		cancel:  cancel,
-	}
+	controller := &RotationController{}
+	controller.TurnOn()
+
+	return controller
 }
 
 func (c *RotationController) Context() context.Context {
-	return c.context
+	return c.ctx
 }
 
 func (c *RotationController) Lock() {
@@ -33,13 +32,17 @@ func (c *RotationController) Unlock() {
 
 func (c *RotationController) Disposed() bool {
 	select {
-	case <-c.context.Done():
+	case <-c.ctx.Done():
 		return true
 	default:
 		return false
 	}
 }
 
-func (c *RotationController) Dipose() {
+func (c *RotationController) TurnOn() {
+	c.ctx, c.cancel = context.WithCancel(context.Background())
+}
+
+func (c *RotationController) TurnOff() {
 	c.cancel()
 }

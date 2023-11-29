@@ -538,7 +538,7 @@ func (r *Rotator) Start() error {
 		r.settings = DefaultRotatorSettings()
 	}
 
-	r.controller = NewRotationController()
+	r.controller.TurnOn()
 
 	r.cleaner = NewKeyCleaner(r.storage)
 	r.cleaner.Start(context.Background())
@@ -605,7 +605,7 @@ func (r *Rotator) Stop() {
 		return
 	}
 
-	r.controller.Dipose()
+	r.controller.TurnOff()
 	r.cleaner.Stop()
 	r.setStatus(RotatorStatusInactive)
 }
