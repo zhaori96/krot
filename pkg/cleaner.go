@@ -85,27 +85,20 @@ func (c *keyCleaner) run() {
 				continue
 			}
 
-			id := c.ids[0]
 			expiration := c.expirations[0]
+			if expiration.Before(time.Now()) {
+				c.deleteLatestExpiredKey()
+				continue
+			}
 
 			timer := time.NewTimer(time.Until(expiration))
+			<-timer.C
+
 			select {
-			case <-timer.C:
-				select {
-				case <-c.ctx.Done():
-					timer.Stop()
-					return
-				default:
-					c.ids = c.ids[1:]
-					c.expirations = c.expirations[1:]
-
-					err := c.storage.Delete(c.ctx, id)
-					if err != nil {
-						log.Printf("failed to delete key %s: %v", id, err)
-					}
-				}
-
-				timer.Stop()
+			case <-c.ctx.Done():
+				return
+			default:
+				c.deleteLatestExpiredKey()
 			}
 		}
 	}
@@ -113,4 +106,16 @@ func (c *keyCleaner) run() {
 
 func (c *keyCleaner) Stop() {
 	c.cancel()
+}
+
+func (c *keyCleaner) deleteLatestExpiredKey() {
+	id := c.ids[0]
+
+	c.ids = c.ids[1:]
+	c.expirations = c.expirations[1:]
+
+	err := c.storage.Delete(c.ctx, id)
+	if err != nil {
+		log.Printf("failed to delete key %s: %v", id, err)
+	}
 }
