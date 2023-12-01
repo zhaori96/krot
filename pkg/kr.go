@@ -149,6 +149,145 @@ func (s *RotatorSettings) Validate() error {
 	return nil
 }
 
+// KeyProvidingMode represents the strategy used for providing keys.
+type KeyProvidingMode int
+
+const (
+	// AutoKeyProvidingMode: This mode automatically selects the key providing
+	// strategy based on the number of keys:
+	// 	- Single key: Always returns the single available key.
+	// 	- Two to five keys: Uses NonRepeatingKeyProvidingMode.
+	// 	- More than five keys: Uses NonRepeatingCyclicKeyProvidingMode.
+	AutoKeyProvidingMode KeyProvidingMode = iota
+
+	// RandomKeyProvidingMode: This mode randomly selects a key from the
+	// available keys. The same key can be selected multiple times in a row.
+	RandomKeyProvidingMode
+
+	// NonRepeatingKeyProvidingMode: This mode randomly selects a key from the
+	// available keys, but ensures that the same key is not selected twice in a row.
+	NonRepeatingKeyProvidingMode
+
+	// CyclicKeyProvidingMode: This mode cycles through the keys in order,
+	// starting from the first key and returning to the first key after the last key.
+	CyclicKeyProvidingMode
+
+	// NonRepeatingCyclicKeyProvidingMode: This mode cycles through the keys in
+	// order, but ensures that the same key is not selected twice in a row.
+	// After all keys have been selected, it starts a new cycle.
+	NonRepeatingCyclicKeyProvidingMode
+)
+
+// KeyIDProvider manages the provision of keys (IDs) based on a specified
+// strategy.
+type KeyIDProvider struct {
+	mode KeyProvidingMode
+
+	ids               []string
+	availableIndexes  []int
+	lastSelectedIndex int
+	round             int
+}
+
+// NewKeyIDProvider returns a new KeyIDProvider with the specified mode and IDs.
+func NewKeyIDProvider(mode KeyProvidingMode, ids ...string) *KeyIDProvider {
+	provider := &KeyIDProvider{mode: mode}
+	provider.Set(ids...)
+
+	return provider
+}
+
+// Set replaces the existing IDs in the KeyIDProvider with the provided IDs.
+// Note that any previous IDs are lost when this method is called.
+func (s *KeyIDProvider) Set(ids ...string) {
+	s.ids = ids
+	s.reloadAvailableIndexes()
+
+	if s.mode == AutoKeyProvidingMode {
+		switch len(s.ids) {
+		case 1:
+			s.mode = RandomKeyProvidingMode
+
+		case 2, 3, 4, 5:
+			s.mode = NonRepeatingKeyProvidingMode
+
+		default:
+			s.mode = NonRepeatingCyclicKeyProvidingMode
+		}
+	}
+}
+
+// Get returns an ID based on the current KeyProvidingMode. If no IDs are
+// available, it returns an error. The behavior varies depending on the mode:
+func (i *KeyIDProvider) Get() (string, error) {
+	if len(i.ids) == 0 {
+		return "", ErrNoKeysGenerated
+	}
+
+	if len(i.ids) == 1 {
+		return i.ids[0], nil
+	}
+
+	switch i.mode {
+	case RandomKeyProvidingMode:
+		return i.ids[mathrand.Intn(len(i.ids))], nil
+
+	case NonRepeatingKeyProvidingMode:
+		index := mathrand.Intn(len(i.ids) - 1)
+		if index >= i.lastSelectedIndex {
+			index++
+		}
+
+		i.lastSelectedIndex = index
+		return i.ids[index], nil
+
+	case CyclicKeyProvidingMode:
+		if i.round == len(i.ids) {
+			i.round = 0
+		}
+
+		id := i.ids[i.round]
+		i.round++
+
+		return id, nil
+
+	case NonRepeatingCyclicKeyProvidingMode:
+		if len(i.availableIndexes) == 0 {
+			i.reloadAvailableIndexes()
+		}
+
+		var index int
+		if len(i.availableIndexes) > 1 {
+			index = mathrand.Intn(len(i.availableIndexes) - 1)
+			if i.availableIndexes[index] == i.lastSelectedIndex {
+				index = len(i.availableIndexes) - 1
+			}
+		} else {
+			index = 0
+		}
+
+		i.lastSelectedIndex = i.availableIndexes[index]
+		id := i.ids[i.lastSelectedIndex]
+
+		i.availableIndexes[index] = i.availableIndexes[len(i.availableIndexes)-1]
+		i.availableIndexes[len(i.availableIndexes)-1] = i.lastSelectedIndex
+
+		i.availableIndexes = i.availableIndexes[:len(i.availableIndexes)-1]
+
+		return id, nil
+
+	default:
+		return "", fmt.Errorf("%w: %d", ErrInvalidKeyProvidingMode, i.mode)
+	}
+}
+
+func (i *KeyIDProvider) reloadAvailableIndexes() {
+	i.availableIndexes = make([]int, len(i.ids))
+	for index := range i.ids {
+		i.availableIndexes[index] = index
+	}
+}
+
 // Rotator is a concurrent-safe key rotation manager.
 // It generates and stores new keys at regular intervals while cleaning up expired keys.
 // Suitable for rotating keys in encryption, decryption, signing, verification, and authentication.

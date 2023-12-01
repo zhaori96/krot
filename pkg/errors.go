@@ -33,4 +33,7 @@ const (
 
 	// ErrInvalidArgument is returned when an invalid argument is passed.
 	ErrInvalidArgument = KeyRotatorError("invalid argument")
+
+	// ErrInvalidKeyProvidingMode is returned when the key providing mode is invalid.
+	ErrInvalidKeyProvidingMode = KeyRotatorError("invalid key providing mode")
 )
