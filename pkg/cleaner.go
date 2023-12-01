@@ -33,10 +33,10 @@ type keyCleaner struct {
 	ids         []string
 	expirations []time.Time
 
-	ctx        context.Context
-	cancel     context.CancelFunc
-	locker     *sync.Mutex
-	keyExpired *sync.Cond
+	ctx         context.Context
+	cancel      context.CancelFunc
+	locker      *sync.Mutex
+	newKeyAdded *sync.Cond
 
 	storage KeyStorage
 }
@@ -46,17 +46,24 @@ func NewKeyCleaner(storage KeyStorage) KeyCleaner {
 	keyExpired := sync.NewCond(locker)
 
 	return &keyCleaner{
-		locker:     locker,
-		keyExpired: keyExpired,
-		storage:    storage,
+		locker:      locker,
+		newKeyAdded: keyExpired,
+		storage:     storage,
 	}
 }
 
 func (c *keyCleaner) Add(id string, expiration time.Time) {
+	if expiration.Before(time.Now()) {
+		c.storage.Delete(context.Background(), id)
+		return
+	}
+
 	c.ids = append(c.ids, id)
 	c.expirations = append(c.expirations, expiration)
 
-	c.keyExpired.Broadcast()
+	if len(c.ids) == 1 {
+		c.newKeyAdded.Signal()
+	}
 }
 
 func (c *keyCleaner) Start(ctx context.Context) {
@@ -74,22 +81,31 @@ func (c *keyCleaner) run() {
 			return
 		default:
 			if len(c.ids) == 0 {
-				c.keyExpired.Wait()
+				c.newKeyAdded.Wait()
 				continue
 			}
 
 			id := c.ids[0]
 			expiration := c.expirations[0]
-			if expiration.Before(time.Now()) {
-				c.ids = c.ids[1:]
-				c.expirations = c.expirations[1:]
 
-				err := c.storage.Delete(c.ctx, id)
-				if err != nil {
-					log.Printf("failed to delete key %s: %v", id, err)
+			timer := time.NewTimer(time.Until(expiration))
+			select {
+			case <-timer.C:
+				select {
+				case <-c.ctx.Done():
+					timer.Stop()
+					return
+				default:
+					c.ids = c.ids[1:]
+					c.expirations = c.expirations[1:]
+
+					err := c.storage.Delete(c.ctx, id)
+					if err != nil {
+						log.Printf("failed to delete key %s: %v", id, err)
+					}
 				}
 
-				continue
+				timer.Stop()
 			}
 		}
 	}
