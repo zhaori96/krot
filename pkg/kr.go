@@ -108,6 +108,10 @@ type RotatorSettings struct {
 	// AutoClearExpiredKeys is a flag that indicates whether to automatically clear expired keys.
 	// The default value is true.
 	AutoClearExpiredKeys bool
+
+	// KeyProvidingMode is the strategy used for providing keys.
+	// The default value is AutoKeyProvidingMode.
+	KeyProvidingMode KeyProvidingMode
 }
 
 // DefaultRotatorSettings returns the default rotator settings.
@@ -117,6 +121,7 @@ func DefaultRotatorSettings() *RotatorSettings {
 		KeyExpiration:        DefaultKeyExpiration,
 		RotationInterval:     DefaultRotationInterval,
 		AutoClearExpiredKeys: true,
+		KeyProvidingMode:     AutoKeyProvidingMode,
 	}
 }
 
@@ -143,6 +148,17 @@ func (s *RotatorSettings) Validate() error {
 			"%w: key expiration must be greater than 0 (got %s)",
 			ErrInvalidKeyExpiration,
 			s.KeyExpiration,
+		)
+	}
+
+	if s.KeyProvidingMode < AutoKeyProvidingMode ||
+		s.KeyProvidingMode > NonRepeatingCyclicKeyProvidingMode {
+		return fmt.Errorf(
+			"%w: key providing mode must be between %d and %d (got %d)",
+			ErrInvalidKeyProvidingMode,
+			AutoKeyProvidingMode,
+			NonRepeatingCyclicKeyProvidingMode,
+			s.KeyProvidingMode,
 		)
 	}
 
@@ -301,11 +317,10 @@ type Rotator struct {
 
 	controller *RotationController
 
-	storage   KeyStorage
-	generator KeyGenerator
-	cleaner   KeyCleaner
-
-	lastGeneratedKeyIDs []string
+	storage    KeyStorage
+	generator  KeyGenerator
+	idProvider KeyIDProvider
+	cleaner    KeyCleaner
 
 	onStartHooks RotatorHooks
 	onStopHooks  RotatorHooks
@@ -564,7 +579,7 @@ func (r *Rotator) GetKeyID() (string, error) {
 	r.controller.Lock()
 	defer r.controller.Unlock()
 
-	return r.getRandomKeyID()
+	return r.idProvider.Get()
 }
 
 // GetKeyID retrieves a random key ID from the Rotator.
@@ -595,7 +610,7 @@ func (r *Rotator) GetKey() (*Key, error) {
 	r.controller.Lock()
 	defer r.controller.Unlock()
 
-	id, err := r.getRandomKeyID()
+	id, err := r.idProvider.Get()
 	if err != nil {
 		return nil, err
 	}
@@ -626,7 +641,7 @@ func (r *Rotator) Rotate() error {
 
 	r.hooksBeforeRotation.Run(r)
 
-	r.lastGeneratedKeyIDs = make([]string, r.settings.RotationKeyCount)
+	ids := make([]string, r.settings.RotationKeyCount)
 	keys := make([]*Key, r.settings.RotationKeyCount)
 	for i := 0; i < r.settings.RotationKeyCount; i++ {
 		keyID := make([]byte, KeySize256)
@@ -652,13 +667,15 @@ func (r *Rotator) Rotate() error {
 		}
 
 		keys[i] = key
-		r.lastGeneratedKeyIDs[i] = key.ID
+		ids[i] = key.ID
 	}
 
 	err := r.storage.Add(context.Background(), keys...)
 	if err != nil {
 		return err
 	}
+
+	r.idProvider.Set(ids...)
 
 	r.hooksAfterRotation.Run(r)
 	return nil
@@ -801,13 +818,4 @@ func (r *Rotator) run() error {
 			return err
 		}
 	}
-}
-
-func (r *Rotator) getRandomKeyID() (string, error) {
-	if len(r.lastGeneratedKeyIDs) == 0 {
-		return "", ErrNoKeysGenerated
-	}
-
-	id := r.lastGeneratedKeyIDs[mathrand.Intn(len(r.lastGeneratedKeyIDs))]
-	return id, nil
 }
