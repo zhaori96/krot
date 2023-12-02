@@ -333,11 +333,14 @@ type Rotator struct {
 // Settings, storage and key generator can be set using the SetSettings, SetStorage, and SetGenerator methods.
 func New() *Rotator {
 	rotator := &Rotator{
-		id:        generateInstanceID(),
-		generator: NewKeyGenerator(KeySize256),
-		storage:   NewKeyStorage(),
-		settings:  DefaultRotatorSettings(),
+		id:         generateInstanceID(),
+		generator:  NewKeyGenerator(KeySize256),
+		storage:    NewKeyStorage(),
+		settings:   DefaultRotatorSettings(),
+		controller: NewRotationController(),
 	}
+
+	rotator.cleaner = NewKeyCleaner(rotator.storage)
 
 	return rotator
 }
@@ -346,14 +349,17 @@ func New() *Rotator {
 // Storage and key generator can be set using the SetStorage and SetGenerator methods.
 func NewWithSettings(settings *RotatorSettings) (*Rotator, error) {
 	rotator := &Rotator{
-		id:        generateInstanceID(),
-		generator: NewKeyGenerator(KeySize256),
-		storage:   NewKeyStorage(),
+		id:         generateInstanceID(),
+		generator:  NewKeyGenerator(KeySize256),
+		storage:    NewKeyStorage(),
+		controller: NewRotationController(),
 	}
 
 	if err := rotator.SetSettings(settings); err != nil {
 		return nil, err
 	}
+
+	rotator.cleaner = NewKeyCleaner(rotator.storage)
 
 	return rotator, nil
 }
@@ -497,6 +503,9 @@ func (r *Rotator) SetStorage(storage KeyStorage) error {
 	if storage == nil {
 		return fmt.Errorf("%w: storage cannot be nil", ErrInvalidArgument)
 	}
+
+	r.cleaner.Stop()
+	r.cleaner = NewKeyCleaner(storage)
 
 	r.storage = storage
 	return nil
