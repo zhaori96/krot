@@ -84,7 +84,7 @@ func TestKeyCleaner(t *testing.T) {
 	t.Run("Should call storage.Delete when a cleanered key is re-added", func(t *testing.T) {
 		storage := &MockKeyStorage{}
 		storage.On("Delete", mock.Anything, []string{"1"}).Return(nil)
-		storage.On("Delete", mock.Anything, []string{"1"}).Return(nil)
+		storage.On("Delete", mock.Anything, []string{"2"}).Return(nil)
 
 		cleaner := kr.NewKeyCleaner(storage)
 		cleaner.Start(context.Background())
@@ -100,7 +100,7 @@ func TestKeyCleaner(t *testing.T) {
 
 		storage.AssertNumberOfCalls(t, "Delete", 3)
 		storage.AssertCalled(t, "Delete", mock.Anything, []string{"1"})
-		storage.AssertCalled(t, "Delete", mock.Anything, []string{"1"})
+		storage.AssertCalled(t, "Delete", mock.Anything, []string{"2"})
 	})
 
 	t.Run("Should call storage.Delete when a cleanered key is re-added with a new expiration", func(t *testing.T) {
@@ -118,7 +118,7 @@ func TestKeyCleaner(t *testing.T) {
 
 		cleaner.Add("1", time.Now().Add(3*time.Second))
 
-		time.Sleep(3 * time.Second)
+		time.Sleep(4 * time.Second)
 
 		storage.AssertNumberOfCalls(t, "Delete", 3)
 		storage.AssertCalled(t, "Delete", mock.Anything, []string{"1"})
