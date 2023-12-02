@@ -34,7 +34,7 @@ type KeyStorage interface {
 	//     if err != nil {
 	//         log.Fatal(err)
 	//     }
-	Delete(context context.Context, id string) error
+	Delete(context context.Context, ids ...string) error
 
 	// Erase removes all keys from the storage. If the keys cannot be erased, it
 	// returns an error.
@@ -77,8 +77,11 @@ func (s *inMemoryStorage) Add(_ context.Context, keys ...*Key) error {
 	return nil
 }
 
-func (s *inMemoryStorage) Delete(_ context.Context, id string) error {
-	delete(s.keys, id)
+func (s *inMemoryStorage) Delete(_ context.Context, ids ...string) error {
+	for _, keyID := range ids {
+		delete(s.keys, keyID)
+	}
+
 	return nil
 }
 

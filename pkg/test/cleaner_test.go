@@ -30,17 +30,17 @@ func (m *MockKeyCleaner) Stop() {
 func TestKeyCleaner(t *testing.T) {
 	t.Run("Should call storage.Delete if expiration is before now", func(t *testing.T) {
 		storage := &MockKeyStorage{}
-		storage.On("Delete", mock.Anything, "1").Return(nil)
+		storage.On("Delete", mock.Anything, []string{"1"}).Return(nil)
 
 		cleaner := kr.NewKeyCleaner(storage)
 		cleaner.Add("1", time.Now().Add(-1*time.Second))
 
-		storage.AssertCalled(t, "Delete", mock.Anything, "1")
+		storage.AssertCalled(t, "Delete", mock.Anything, []string{"1"})
 	})
 
 	t.Run("Should call storage.Delete when a key is expired", func(t *testing.T) {
 		storage := &MockKeyStorage{}
-		storage.On("Delete", mock.Anything, "1").Return(nil)
+		storage.On("Delete", mock.Anything, []string{"1"}).Return(nil)
 
 		cleaner := kr.NewKeyCleaner(storage)
 		cleaner.Start(context.Background())
@@ -49,12 +49,12 @@ func TestKeyCleaner(t *testing.T) {
 
 		time.Sleep(2 * time.Second)
 
-		storage.AssertCalled(t, "Delete", mock.Anything, "1")
+		storage.AssertCalled(t, "Delete", mock.Anything, []string{"1"})
 	})
 
 	t.Run("Should not call storage.Delete when a key is not expired", func(t *testing.T) {
 		storage := &MockKeyStorage{}
-		storage.On("Delete", mock.Anything, "1").Return(nil)
+		storage.On("Delete", mock.Anything, []string{"1"}).Return(nil)
 
 		cleaner := kr.NewKeyCleaner(storage)
 		cleaner.Start(context.Background())
@@ -63,12 +63,12 @@ func TestKeyCleaner(t *testing.T) {
 
 		time.Sleep(1 * time.Second)
 
-		storage.AssertNotCalled(t, "Delete", mock.Anything, "1")
+		storage.AssertNotCalled(t, "Delete", mock.Anything, []string{"1"})
 	})
 
 	t.Run("Should not call storage.Delete when a key is deleted", func(t *testing.T) {
 		storage := &MockKeyStorage{}
-		storage.On("Delete", mock.Anything, "1").Return(nil)
+		storage.On("Delete", mock.Anything, []string{"1"}).Return(nil)
 
 		cleaner := kr.NewKeyCleaner(storage)
 		cleaner.Start(context.Background())
@@ -78,13 +78,13 @@ func TestKeyCleaner(t *testing.T) {
 
 		time.Sleep(1 * time.Second)
 
-		storage.AssertNotCalled(t, "Delete", mock.Anything, "1")
+		storage.AssertNotCalled(t, "Delete", mock.Anything, []string{"1"})
 	})
 
 	t.Run("Should call storage.Delete when a cleanered key is re-added", func(t *testing.T) {
 		storage := &MockKeyStorage{}
-		storage.On("Delete", mock.Anything, "1").Return(nil)
-		storage.On("Delete", mock.Anything, "2").Return(nil)
+		storage.On("Delete", mock.Anything, []string{"1"}).Return(nil)
+		storage.On("Delete", mock.Anything, []string{"1"}).Return(nil)
 
 		cleaner := kr.NewKeyCleaner(storage)
 		cleaner.Start(context.Background())
@@ -99,14 +99,14 @@ func TestKeyCleaner(t *testing.T) {
 		time.Sleep(2 * time.Second)
 
 		storage.AssertNumberOfCalls(t, "Delete", 3)
-		storage.AssertCalled(t, "Delete", mock.Anything, "1")
-		storage.AssertCalled(t, "Delete", mock.Anything, "2")
+		storage.AssertCalled(t, "Delete", mock.Anything, []string{"1"})
+		storage.AssertCalled(t, "Delete", mock.Anything, []string{"1"})
 	})
 
 	t.Run("Should call storage.Delete when a cleanered key is re-added with a new expiration", func(t *testing.T) {
 		storage := &MockKeyStorage{}
-		storage.On("Delete", mock.Anything, "1").Return(nil)
-		storage.On("Delete", mock.Anything, "2").Return(nil)
+		storage.On("Delete", mock.Anything, []string{"1"}).Return(nil)
+		storage.On("Delete", mock.Anything, []string{"2"}).Return(nil)
 
 		cleaner := kr.NewKeyCleaner(storage)
 		cleaner.Start(context.Background())
@@ -121,12 +121,12 @@ func TestKeyCleaner(t *testing.T) {
 		time.Sleep(3 * time.Second)
 
 		storage.AssertNumberOfCalls(t, "Delete", 3)
-		storage.AssertCalled(t, "Delete", mock.Anything, "1")
+		storage.AssertCalled(t, "Delete", mock.Anything, []string{"1"})
 	})
 
 	t.Run("Call storage.Get should return ErrKeyNotFound after a key is cleaned", func(t *testing.T) {
 		storage := &MockKeyStorage{}
-		storage.On("Delete", mock.Anything, "1").Return(nil)
+		storage.On("Delete", mock.Anything, []string{"1"}).Return(nil)
 		storage.On("Get", mock.Anything, "1").Return(nil, kr.ErrKeyNotFound)
 
 		cleaner := kr.NewKeyCleaner(storage)
@@ -142,7 +142,7 @@ func TestKeyCleaner(t *testing.T) {
 
 	t.Run("Call storage.Get should return ErrKeyNotFound after a key is cleaned and re-added", func(t *testing.T) {
 		storage := &MockKeyStorage{}
-		storage.On("Delete", mock.Anything, "1").Return(nil)
+		storage.On("Delete", mock.Anything, []string{"1"}).Return(nil)
 		storage.On("Get", mock.Anything, "1").Return(nil, kr.ErrKeyNotFound)
 
 		cleaner := kr.NewKeyCleaner(storage)

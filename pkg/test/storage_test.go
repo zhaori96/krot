@@ -28,8 +28,8 @@ func (m *MockKeyStorage) Add(ctx context.Context, keys ...*kr.Key) error {
 	return args.Error(0)
 }
 
-func (m *MockKeyStorage) Delete(ctx context.Context, id string) error {
-	args := m.Called(ctx, id)
+func (m *MockKeyStorage) Delete(ctx context.Context, ids ...string) error {
+	args := m.Called(ctx, ids)
 	return args.Error(0)
 }
 
