@@ -43,7 +43,7 @@ func main() {
 }
 ```
 
-#Hooks
+# Hooks
 Hooks allow you to execute custom logic before or after key rotation events. Use OnStart and OnStop hooks to perform actions when the Rotator starts or stops, respectively. Additionally, you can use BeforeRotation and AfterRotation hooks to execute logic before or after each key rotation.
 
 ```go
@@ -66,11 +66,11 @@ rotator.AfterRotation(func(r *kr.Rotator) {
 ```
 
 
-#KeyStorage with Redis
+# KeyStorage with Redis
 
 The RedisKeyStorage struct provides an implementation of the KeyStorage interface using Redis as the backend.
 
-######Implementing
+###### Implementing
 ```go
 import (
     "context"
@@ -136,7 +136,7 @@ func (r *RedisKeyStorage) Erase(ctx context.Context) error {
 }
 ```
 
-######Using custom KeyStorage with Redis
+###### Using custom KeyStorage with Redis
 ```go
 package main
 
