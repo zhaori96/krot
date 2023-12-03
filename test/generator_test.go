@@ -3,9 +3,10 @@ package kr_test
 import (
 	"testing"
 
+	"github.com/zhaori96/kr"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/zhaori96/kr/pkg/kr"
 )
 
 type MockKeyGenerator struct {
