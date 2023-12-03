@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	kr "github.com/zhaori96/kr/pkg"
+	"github.com/zhaori96/kr/pkg/kr"
 )
 
 type MockKeyGenerator struct {

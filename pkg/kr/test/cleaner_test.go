@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	kr "github.com/zhaori96/kr/pkg"
+	 "github.com/zhaori96/kr/pkg/kr"
 
 	"github.com/stretchr/testify/mock"
 )

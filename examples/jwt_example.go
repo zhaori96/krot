@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	kr "github.com/zhaori96/kr/pkg"
-
 	"github.com/dgrijalva/jwt-go"
+	"github.com/zhaori96/kr/pkg/kr"
 )
 
 // JWTKeySigningHook is a custom RotatorHook that signs JWTs using the current key.

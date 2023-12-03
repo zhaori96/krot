@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	kr "github.com/zhaori96/kr/pkg"
+	"github.com/zhaori96/kr/pkg/kr"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
