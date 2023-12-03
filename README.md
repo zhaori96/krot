@@ -4,8 +4,10 @@ KR is a robust and flexible Go package designed to manage and rotate keys or sec
 
 ## Features
 
-- **Flexible Key Rotation**: KR provides a seamless way to rotate keys or secrets, ensuring your application's security is always up-to-date.
-- **Customizable**: KR is designed to be adaptable to your needs. You can implement the provided interfaces to create a key rotation strategy that fits your application.
+- **Flexible Key Rotation**: KR provides a smooth way to rotate keys or secrets, ensuring your application's security is always up-to-date.
+- **Customizable**:
+    - **Interfaces**: KR is designed to be adaptable to your needs. You can implement the provided interfaces to create a key rotation strategy that fits your application. Just by implementing one of thoses interfaces:`KeyGenerator` and `KeyStorage`.
+    - **Hooks**: Enable the scheduling of triggers for events such as `OnStart`, `OnStop`, `BeforeRotation`, and `AfterRotation`. This feature empowers you to execute custom actions at crucial points in your application's lifecycle.
 - **Easy to Use**: With a simple and intuitive API, KR is easy to integrate into your Go applications.
 
 ## Installation
@@ -16,9 +18,11 @@ To install the KR package, use the `go get` command:
 go get -u github.com/zhaori96/kr
 ```
 
-## Usage
+# Usage
+Here's a comprehensive guide on how to effectively use the KR package in various scenarios:
 
-Here's a basic example of how to use the KR package:
+## Basic Usage
+A simple way to integrate KR into your application is by creating a rotator instance, starting it, and then fetching a key. Below is a basic example:
 
 ```go
 package main
@@ -41,6 +45,47 @@ func main() {
 
     fmt.Printf("ID: %s; Value: %v; Expiration: %s", key.ID, key.Value, key.Expiration)
 }
+```
+
+## Using the Global Instance
+You can simplify the process by utilizing the global instance provided by KR:
+```go
+    kr.Start()
+    defer kr.Stop()
+
+    key, err := kr.GetKey()
+    if err != nil {
+        panic(err)
+    }
+
+    fmt.Printf("%v", key.ID)
+```
+
+## Custom Settings
+For more control over the key rotation process, you can customize the rotator settings. Here are two approaches:
+
+**Approach 1: Inline Settings**
+```go
+    settings := &kr.RotatorSettings{
+        RotationKeyCount: 15,
+        RotationInterval: kr.DefaultRotationInverval,
+        KeyExpiration: kr.DefaultKeyExpiration,
+        AutoClearExpiredKeys: false,
+        KeyProvidingMode: kr.NonRepeatingCyclicKeyProvidingMode
+    }
+
+    rotator := kr.NewWithSettings(settings)
+```
+
+**Approach 2: Default Settings with Overrides**
+```go
+    settings := kr.DefaultRotatorSettings()
+    settings.RotationKeyCount = 15
+    settings.AutoClearExpiredKeys = false
+    settings.KeyProvidingMode = kr.NonRepeatingCyclicKeyProvidingMode
+
+    rotator := kr.New()
+    rotator.SetSettings(settings)
 ```
 
 # Hooks
@@ -70,7 +115,7 @@ rotator.AfterRotation(func(r *kr.Rotator) {
 
 The RedisKeyStorage struct provides an implementation of the KeyStorage interface using Redis as the backend.
 
-### Implementing
+### RedisKeyStorage Implementation
 ```go
 import (
     "context"
@@ -136,37 +181,64 @@ func (r *RedisKeyStorage) Erase(ctx context.Context) error {
 }
 ```
 
-### Using custom KeyStorage with Redis
+# KeyGenerator with RSA
+
+The `KeyGenerator` interface defines the contract for generating keys, with a specific implementation using RSA as the key type. This interface provides a method, `Generate`, which creates a new RSA key pair. If the key pair cannot be generated, it returns an error.
+
+### RSAKeyGenerator Implementation
+
+Below is an example of implementing the `KeyGenerator` interface using RSA as the key type:
+
 ```go
 package main
 
 import (
-    "github.com/zhaori96/kr"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
+	"errors"
+	"log"
+	"os"
 )
 
-func main(){
-    rotator := kr.New()
+// RSAKeyGenerator implements the KeyGenerator interface using RSA as the key type.
+type RSAKeyGenerator struct {
+	KeySize int
+}
 
-    redisClient := redis.NewClient(&redis.Options{
-        Addr:     "localhost:6379",
-        Password: "", // no password set
-        DB:       0,  // use default DB
-    })
+// NewRSAKeyGenerator creates a new instance of RSAKeyGenerator with the specified key size.
+func NewRSAKeyGenerator(keySize int) *RSAKeyGenerator {
+	return &RSAKeyGenerator{
+		KeySize: keySize,
+	}
+}
 
-    storage := NewRedisKeyStorage(redisClient)
-    err := rotator.SetStorage()
-    if err != nil {
-        panic(err)
-    }
+// Generate creates a new RSA key pair. If the key pair cannot be generated, it returns an error.
+func (g *RSAKeyGenerator) Generate() (*rsa.PrivateKey, error) {
+	// Generate RSA private key
+	privateKey, err := rsa.GenerateKey(rand.Reader, g.KeySize)
+	if err != nil {
+		return nil, err
+	}
 
-    rotator.Start()
-    defer rotator.Stop()
+	// Encode private key to PEM format
+	privateKeyPEM := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)}
 
-    key, err := rotator.GetKey()
-    if err != nil {
-        panic(err)
-    }
+	// Write private key to a file (for example purposes)
+	privateKeyFile, err := os.Create("private_key.pem")
+	if err != nil {
+		return nil, err
+	}
+	defer privateKeyFile.Close()
+	if err := pem.Encode(privateKeyFile, privateKeyPEM); err != nil {
+		return nil, err
+	}
 
-    fmt.Printf("ID: %s; Value: %v; Expiration: %s", key.ID, key.Value, key.Expiration)
+	return privateKey, nil
 }
 ```
+
+
+# Contribution
+We welcome and appreciate contributions from the community! If you find any issues, have new features to propose, or want to improve the documentation, feel free to contribute to the KR project.
