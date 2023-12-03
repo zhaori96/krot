@@ -70,7 +70,7 @@ rotator.AfterRotation(func(r *kr.Rotator) {
 
 The RedisKeyStorage struct provides an implementation of the KeyStorage interface using Redis as the backend.
 
-###### Implementing
+### Implementing
 ```go
 import (
     "context"
@@ -136,7 +136,7 @@ func (r *RedisKeyStorage) Erase(ctx context.Context) error {
 }
 ```
 
-###### Using custom KeyStorage with Redis
+### Using custom KeyStorage with Redis
 ```go
 package main
 
