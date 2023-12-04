@@ -21,7 +21,7 @@ var JWTKeySigningHook kr.RotatorHook = func(rotator *kr.Rotator) {
 
 	// Example claims for the JWT
 	claims := jwt.MapClaims{
-		"exp": time.Now().Add(24 * time.Hour).Unix(),
+		"exp": key.Expires.Unix(),
 		"iat": time.Now().Unix(),
 		// Add your custom claims here
 	}
@@ -30,7 +30,7 @@ var JWTKeySigningHook kr.RotatorHook = func(rotator *kr.Rotator) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	// Sign the token with the current key's value
-	tokenString, err := token.SignedString(key.Value)
+	tokenString, err := token.SignedString([]byte(key.Value.(string)))
 	if err != nil {
 		fmt.Printf("Error signing JWT: %v\n", err)
 		return
