@@ -642,13 +642,20 @@ func GetKey() (*Key, error) { return rotator.GetKey() }
 // After storing the keys, it runs any AfterRotation hooks and sets the state back to Idle.
 // It returns any error that occurred during the process.
 func (r *Rotator) Rotate() error {
+	r.hooksBeforeRotation.Run(r)
+
+	var err error
+	defer func() {
+		if err == nil {
+			r.hooksAfterRotation.Run(r)
+		}
+	}()
+
 	r.controller.Lock()
 	defer r.controller.Unlock()
 
 	r.setState(RotatorStateRotating)
 	defer r.setState(RotatorStateIdle)
-
-	r.hooksBeforeRotation.Run(r)
 
 	ids := make([]string, r.settings.RotationKeyCount)
 	keys := make([]*Key, r.settings.RotationKeyCount)
@@ -679,14 +686,12 @@ func (r *Rotator) Rotate() error {
 		ids[i] = key.ID
 	}
 
-	err := r.storage.Add(context.Background(), keys...)
+	err = r.storage.Add(context.Background(), keys...)
 	if err != nil {
 		return err
 	}
 
 	r.idProvider.Set(ids...)
-
-	r.hooksAfterRotation.Run(r)
 	return nil
 }
 
