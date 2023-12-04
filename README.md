@@ -215,7 +215,7 @@ func NewRSAKeyGenerator(keySize int) *RSAKeyGenerator {
 }
 
 // Generate creates a new RSA key pair. If the key pair cannot be generated, it returns an error.
-func (g *RSAKeyGenerator) Generate() (*rsa.PrivateKey, error) {
+func (g *RSAKeyGenerator) Generate() (any, error) {
 	// Generate RSA private key
 	privateKey, err := rsa.GenerateKey(rand.Reader, g.KeySize)
 	if err != nil {
