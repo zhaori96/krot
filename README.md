@@ -15,7 +15,7 @@ KR is a robust and flexible Go package designed to manage and rotate keys or sec
 To install the KR package, use the `go get` command:
 
 ```sh
-go get -u github.com/zhaori96/kr
+go get -u github.com/zhaori96/krot
 ```
 
 # Usage
@@ -30,11 +30,11 @@ package main
 import (
     "fmt"
 
-    "github.com/zhaori96/kr"
+    "github.com/zhaori96/krot"
 )
 
 func main() {
-    rotator := kr.New()
+    rotator := krot.New()
     rotator.Start()
     defer rotator.Stop()
 
@@ -50,10 +50,10 @@ func main() {
 ## Using the Global Instance
 You can simplify the process by utilizing the global instance provided by KR:
 ```go
-    kr.Start()
-    defer kr.Stop()
+    krot.Start()
+    defer krot.Stop()
 
-    key, err := kr.GetKey()
+    key, err := krot.GetKey()
     if err != nil {
         panic(err)
     }
@@ -66,25 +66,25 @@ For more control over the key rotation process, you can customize the rotator se
 
 **Approach 1: Inline Settings**
 ```go
-    settings := &kr.RotatorSettings{
+    settings := &krot.RotatorSettings{
         RotationKeyCount: 15,
-        RotationInterval: kr.DefaultRotationInverval,
-        KeyExpiration: kr.DefaultKeyExpiration,
+        RotationInterval: krot.DefaultRotationInverval,
+        KeyExpiration: krot.DefaultKeyExpiration,
         AutoClearExpiredKeys: false,
-        KeyProvidingMode: kr.NonRepeatingCyclicKeyProvidingMode
+        KeyProvidingMode: krot.NonRepeatingCyclicKeyProvidingMode
     }
 
-    rotator := kr.NewWithSettings(settings)
+    rotator := krot.NewWithSettings(settings)
 ```
 
 **Approach 2: Default Settings with Overrides**
 ```go
-    settings := kr.DefaultRotatorSettings()
+    settings := krot.DefaultRotatorSettings()
     settings.RotationKeyCount = 15
     settings.AutoClearExpiredKeys = false
-    settings.KeyProvidingMode = kr.NonRepeatingCyclicKeyProvidingMode
+    settings.KeyProvidingMode = krot.NonRepeatingCyclicKeyProvidingMode
 
-    rotator := kr.New()
+    rotator := krot.New()
     rotator.SetSettings(settings)
 ```
 
@@ -93,19 +93,19 @@ Hooks allow you to execute custom logic before or after key rotation events. Use
 
 ```go
 // Example of using hooks
-rotator.OnStart(func(r *kr.Rotator) {
+rotator.OnStart(func(r *krot.Rotator) {
 	log.Println("Rotator is starting...")
 })
 
-rotator.OnStop(func(r *kr.Rotator) {
+rotator.OnStop(func(r *krot.Rotator) {
 	log.Println("Rotator is stopping...")
 })
 
-rotator.BeforeRotation(func(r *kr.Rotator) {
+rotator.BeforeRotation(func(r *krot.Rotator) {
 	log.Println("Before key rotation...")
 })
 
-rotator.AfterRotation(func(r *kr.Rotator) {
+rotator.AfterRotation(func(r *krot.Rotator) {
 	log.Println("After key rotation...")
 })
 ```

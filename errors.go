@@ -1,4 +1,4 @@
-package kr
+package krot
 
 // KeyRotatorError represents an error in the key rotation process. It is a string
 // type that implements the error interface.

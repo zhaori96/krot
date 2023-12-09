@@ -1,9 +1,6 @@
-module github.com/zhaori96/kr
+module github.com/zhaori96/krot
 
-go 1.21.4
-
-retract v1.0.0
-retract v0.1.0
+go 1.21.5
 
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible

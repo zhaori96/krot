@@ -1,11 +1,11 @@
-package kr_test
+package krot_test
 
 import (
 	"context"
 	"testing"
 	"time"
 
-	"github.com/zhaori96/kr"
+	"github.com/zhaori96/krot"
 
 	"github.com/stretchr/testify/mock"
 )
@@ -32,7 +32,7 @@ func TestKeyCleaner(t *testing.T) {
 		storage := &MockKeyStorage{}
 		storage.On("Delete", mock.Anything, []string{"1"}).Return(nil)
 
-		cleaner := kr.NewKeyCleaner(storage)
+		cleaner := krot.NewKeyCleaner(storage)
 		cleaner.Add("1", time.Now().Add(-1*time.Second))
 
 		storage.AssertCalled(t, "Delete", mock.Anything, []string{"1"})
@@ -42,7 +42,7 @@ func TestKeyCleaner(t *testing.T) {
 		storage := &MockKeyStorage{}
 		storage.On("Delete", mock.Anything, []string{"1"}).Return(nil)
 
-		cleaner := kr.NewKeyCleaner(storage)
+		cleaner := krot.NewKeyCleaner(storage)
 		cleaner.Start(context.Background())
 
 		cleaner.Add("1", time.Now().Add(1*time.Second))
@@ -56,7 +56,7 @@ func TestKeyCleaner(t *testing.T) {
 		storage := &MockKeyStorage{}
 		storage.On("Delete", mock.Anything, []string{"1"}).Return(nil)
 
-		cleaner := kr.NewKeyCleaner(storage)
+		cleaner := krot.NewKeyCleaner(storage)
 		cleaner.Start(context.Background())
 
 		cleaner.Add("1", time.Now().Add(2*time.Second))
@@ -70,7 +70,7 @@ func TestKeyCleaner(t *testing.T) {
 		storage := &MockKeyStorage{}
 		storage.On("Delete", mock.Anything, []string{"1"}).Return(nil)
 
-		cleaner := kr.NewKeyCleaner(storage)
+		cleaner := krot.NewKeyCleaner(storage)
 		cleaner.Start(context.Background())
 
 		cleaner.Add("1", time.Now().Add(1*time.Second))
@@ -86,7 +86,7 @@ func TestKeyCleaner(t *testing.T) {
 		storage.On("Delete", mock.Anything, []string{"1"}).Return(nil)
 		storage.On("Delete", mock.Anything, []string{"2"}).Return(nil)
 
-		cleaner := kr.NewKeyCleaner(storage)
+		cleaner := krot.NewKeyCleaner(storage)
 		cleaner.Start(context.Background())
 
 		cleaner.Add("1", time.Now().Add(time.Second))
@@ -108,7 +108,7 @@ func TestKeyCleaner(t *testing.T) {
 		storage.On("Delete", mock.Anything, []string{"1"}).Return(nil)
 		storage.On("Delete", mock.Anything, []string{"2"}).Return(nil)
 
-		cleaner := kr.NewKeyCleaner(storage)
+		cleaner := krot.NewKeyCleaner(storage)
 		cleaner.Start(context.Background())
 
 		cleaner.Add("1", time.Now().Add(1*time.Second))
@@ -127,9 +127,9 @@ func TestKeyCleaner(t *testing.T) {
 	t.Run("Call storage.Get should return ErrKeyNotFound after a key is cleaned", func(t *testing.T) {
 		storage := &MockKeyStorage{}
 		storage.On("Delete", mock.Anything, []string{"1"}).Return(nil)
-		storage.On("Get", mock.Anything, "1").Return(nil, kr.ErrKeyNotFound)
+		storage.On("Get", mock.Anything, "1").Return(nil, krot.ErrKeyNotFound)
 
-		cleaner := kr.NewKeyCleaner(storage)
+		cleaner := krot.NewKeyCleaner(storage)
 		cleaner.Start(context.Background())
 
 		cleaner.Add("1", time.Now().Add(1*time.Second))
@@ -143,9 +143,9 @@ func TestKeyCleaner(t *testing.T) {
 	t.Run("Call storage.Get should return ErrKeyNotFound after a key is cleaned and re-added", func(t *testing.T) {
 		storage := &MockKeyStorage{}
 		storage.On("Delete", mock.Anything, []string{"1"}).Return(nil)
-		storage.On("Get", mock.Anything, "1").Return(nil, kr.ErrKeyNotFound)
+		storage.On("Get", mock.Anything, "1").Return(nil, krot.ErrKeyNotFound)
 
-		cleaner := kr.NewKeyCleaner(storage)
+		cleaner := krot.NewKeyCleaner(storage)
 		cleaner.Start(context.Background())
 
 		cleaner.Add("1", time.Now().Add(1*time.Second))

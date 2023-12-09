@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/zhaori96/kr"
+	"github.com/zhaori96/krot"
 
 	"github.com/dgrijalva/jwt-go"
 )
 
 // JWTKeySigningHook is a custom RotatorHook that signs JWTs using the current key.
-var JWTKeySigningHook kr.RotatorHook = func(rotator *kr.Rotator) {
+var JWTKeySigningHook krot.RotatorHook = func(rotator *krot.Rotator) {
 	// Retrieve the current key from the Rotator
 	key, err := rotator.GetKey()
 	if err != nil {
@@ -42,7 +42,7 @@ var JWTKeySigningHook kr.RotatorHook = func(rotator *kr.Rotator) {
 
 func main() {
 	// Initialize the Rotator
-	rotator := kr.New()
+	rotator := krot.New()
 
 	// Add the custom JWT signing hook to the AfterRotation hooks
 	rotator.AfterRotation(JWTKeySigningHook)

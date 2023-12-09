@@ -1,4 +1,4 @@
-// Package kr provides a comprehensive system for managing key rotation in secure
+// package krot provides a comprehensive system for managing key rotation in secure
 // applications. It includes components for generating, storing, and cleaning keys,
 // as well as managing key rotation and expiration.
 //
@@ -10,7 +10,7 @@
 // The package also defines a Key type, which represents a key with an ID, value,
 // and expiration time, and a KeyRotatorError type, which represents an error in
 // the key rotation process.
-package kr
+package krot
 
 import (
 	"context"
@@ -47,7 +47,7 @@ var (
 	// This hook is typically used when you want to clear all keys from the storage, such as during starting or stopping of the Rotator.
 	//
 	// Example usage:
-	// 	rotator.OnStart(kr.EraseStorageHook)
+	// 	rotator.OnStart(krot.EraseStorageHook)
 	EraseStorageHook RotatorHook = func(rotator *Rotator) {
 		rotator.storage.Erase(context.Background())
 	}
