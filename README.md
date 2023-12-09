@@ -1,28 +1,28 @@
-# KR - Key Rotation Package
+# krot - Key Rotator Package
 
-KR is a robust and flexible Go package designed to manage and rotate keys or secrets, such as those used to sign JWTs. It's built with customization in mind, allowing users to implement their own strategies by leveraging the interfaces provided.
+krot is a robust and flexible Go package designed to manage and rotate keys or secrets, such as those used to sign JWTs. It's built with customization in mind, allowing users to implement their own strategies by leveraging the interfaces provided.
 
 ## Features
 
-- **Flexible Key Rotation**: KR provides a smooth way to rotate keys or secrets, ensuring your application's security is always up-to-date.
+- **Flexible Key Rotator**: krot provides a smooth way to rotate keys or secrets, ensuring your application's security is always up-to-date.
 - **Customizable**:
-    - **Interfaces**: KR is designed to be adaptable to your needs. You can implement the provided interfaces to create a key rotation strategy that fits your application. Just by implementing one of thoses interfaces:`KeyGenerator` and `KeyStorage`.
+    - **Interfaces**: krot is designed to be adaptable to your needs. You can implement the provided interfaces to create a key rotation strategy that fits your application. Just by implementing one of thoses interfaces:`KeyGenerator` and `KeyStorage`.
     - **Hooks**: Enable the scheduling of triggers for events such as `OnStart`, `OnStop`, `BeforeRotation`, and `AfterRotation`. This feature empowers you to execute custom actions at crucial points in your application's lifecycle.
-- **Easy to Use**: With a simple and intuitive API, KR is easy to integrate into your Go applications.
+- **Easy to Use**: With a simple and intuitive API, krot is easy to integrate into your Go applications.
 
 ## Installation
 
-To install the KR package, use the `go get` command:
+To install the krot package, use the `go get` command:
 
 ```sh
 go get -u github.com/zhaori96/krot
 ```
 
 # Usage
-Here's a comprehensive guide on how to effectively use the KR package in various scenarios:
+Here's a comprehensive guide on how to effectively use the krot package in various scenarios:
 
 ## Basic Usage
-A simple way to integrate KR into your application is by creating a rotator instance, starting it, and then fetching a key. Below is a basic example:
+A simple way to integrate krot into your application is by creating a rotator instance, starting it, and then fetching a key. Below is a basic example:
 
 ```go
 package main
@@ -48,7 +48,7 @@ func main() {
 ```
 
 ## Using the Global Instance
-You can simplify the process by utilizing the global instance provided by KR:
+You can simplify the process by utilizing the global instance provided by krot:
 ```go
     krot.Start()
     defer krot.Stop()
@@ -241,4 +241,4 @@ func (g *RSAKeyGenerator) Generate() (any, error) {
 
 
 # Contribution
-We welcome and appreciate contributions from the community! If you find any issues, have new features to propose, or want to improve the documentation, feel free to contribute to the KR project.
+We welcome and appreciate contributions from the community! If you find any issues, have new features to propose, or want to improve the documentation, feel free to contribute to the krot project.
