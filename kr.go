@@ -304,6 +304,10 @@ func (i *KeyIDProvider) reloadAvailableIndexes() {
 	}
 }
 
+type rotatorContextKey struct {
+	alias string
+}
+
 // Rotator is a concurrent-safe key rotation manager.
 // It generates and stores new keys at regular intervals while cleaning up expired keys.
 // Suitable for rotating keys in encryption, decryption, signing, verification, and authentication.
@@ -362,6 +366,64 @@ func NewWithSettings(settings *RotatorSettings) (*Rotator, error) {
 	rotator.cleaner = NewKeyCleaner(rotator.storage)
 
 	return rotator, nil
+}
+
+// NewWithContext initializes a key rotator with default settings, storage, and key generator.
+// It returns the rotator and a context that has the rotator associated with it.
+// You can customize the rotator by using SetSettings, SetStorage, and SetGenerator methods.
+//
+// The rotator can be retrieved from the context using FromContext method.
+//
+// If an alias is provided, it's used to associate the rotator with the context.
+// This allows for multiple rotators to be associated with a single context.
+//
+// If no alias is provided, the rotator is associated with the context using the default alias "default".
+//
+// Example without alias:
+// 	rotator, ctx := krot.NewWithContext(context.Background())
+// 	krot.FromContext(ctx).Start() // Starts the default rotator
+//
+// Example with alias:
+// 	rotator, ctx := krot.NewWithContext(context.Background(), "my-rotator")
+// 	krot.FromContext(ctx, "my-rotator").Start() // Starts the rotator with the alias "my-rotator"
+func NewWithContext(ctx context.Context, alias ...string) (*Rotator, context.Context) {
+	key := rotatorContextKey{}
+
+	if len(alias) > 0 {
+		key.alias = alias[0]
+	} else {
+		key.alias = "default"
+	}
+
+	rotator := New()
+	ctx = context.WithValue(ctx, key, rotator)
+
+	return rotator, ctx
+}
+
+// FromContext retrieves the Rotator linked with the given context.
+// If no alias is specified, it returns the Rotator associated with the default alias "default".
+// If an alias is provided, it returns the Rotator associated with that specific alias.
+// If no Rotator is linked with the context (or the specified alias), it returns nil.
+//
+// Example wihtout alias:
+// 	rotator, ctx := krot.NewWithContext(context.Background())
+// 	krot.FromContext(ctx).Start() // Starts the default rotator
+//
+// Example with alias:
+// 	rotator, ctx := krot.NewWithContext(context.Background(), "my-rotator")
+// 	krot.FromContext(ctx, "my-rotator").Start() // Starts the rotator with the alias "my-rotator"
+func FromContext(ctx context.Context, alias ...string) *Rotator {
+	key := rotatorContextKey{}
+
+	if len(alias) > 0 {
+		key.alias = alias[0]
+	} else{
+		key.alias = "default"
+	}
+
+	rotator, _ := ctx.Value(key).(*Rotator)
+	return rotator
 }
 
 // GetRotator returns the global instance of the Rotator.
