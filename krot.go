@@ -432,7 +432,7 @@ func GetRotator() *Rotator {
 }
 
 func generateInstanceID() string {
-	id := make([]byte, 8)
+	id := make([]byte, KeySize64)
 	if _, err := cryptorand.Read(id); err != nil {
 		return ""
 	}
@@ -722,7 +722,7 @@ func (r *Rotator) Rotate() error {
 	ids := make([]string, r.settings.RotationKeyCount)
 	keys := make([]*Key, r.settings.RotationKeyCount)
 	for i := 0; i < r.settings.RotationKeyCount; i++ {
-		keyID := make([]byte, KeySize256)
+		keyID := make([]byte, KeySize64)
 		if _, err := cryptorand.Read(keyID); err != nil {
 			return err
 		}
