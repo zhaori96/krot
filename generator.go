@@ -8,6 +8,8 @@ import (
 type KeySize int
 
 const (
+	KeySize32  KeySize = 4
+	KeySize64  KeySize = 8
 	KeySize128 KeySize = 16
 	KeySize192 KeySize = 24
 	KeySize256 KeySize = 32
