@@ -105,7 +105,9 @@ func (c *keyCleaner) run() {
 }
 
 func (c *keyCleaner) Stop() {
-	c.cancel()
+	if c.cancel != nil {
+		c.cancel()
+	}
 }
 
 func (c *keyCleaner) deleteLatestExpiredKey() {
