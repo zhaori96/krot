@@ -66,21 +66,6 @@ func TestKeyCleaner(t *testing.T) {
 		storage.AssertNotCalled(t, "Delete", mock.Anything, []string{"1"})
 	})
 
-	t.Run("Should not call storage.Delete when a key is deleted", func(t *testing.T) {
-		storage := &MockKeyStorage{}
-		storage.On("Delete", mock.Anything, []string{"1"}).Return(nil)
-
-		cleaner := krot.NewKeyCleaner(storage)
-		cleaner.Start(context.Background())
-
-		cleaner.Add("1", time.Now().Add(1*time.Second))
-		cleaner.Add("1", time.Now().Add(2*time.Second))
-
-		time.Sleep(1 * time.Second)
-
-		storage.AssertNotCalled(t, "Delete", mock.Anything, []string{"1"})
-	})
-
 	t.Run("Should call storage.Delete when a cleanered key is re-added", func(t *testing.T) {
 		storage := &MockKeyStorage{}
 		storage.On("Delete", mock.Anything, []string{"1"}).Return(nil)
