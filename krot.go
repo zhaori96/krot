@@ -126,6 +126,7 @@ func DefaultRotatorSettings() *RotatorSettings {
 		KeyExpiration:        DefaultKeyExpiration,
 		RotationInterval:     DefaultRotationInterval,
 		AutoClearExpiredKeys: true,
+		ExtendExpiration:     true,
 		KeyProvidingMode:     AutoKeyProvidingMode,
 	}
 }
@@ -140,7 +141,7 @@ func (s *RotatorSettings) Validate() error {
 		)
 	}
 
-	if s.RotationInterval < 0 {
+	if s.RotationInterval <= 0 {
 		return fmt.Errorf(
 			"%w: rotation interval must be greater than 0 (got %s)",
 			ErrInvalidRotationInterval,
@@ -148,7 +149,7 @@ func (s *RotatorSettings) Validate() error {
 		)
 	}
 
-	if s.KeyExpiration < 0 {
+	if s.KeyExpiration <= 0 {
 		return fmt.Errorf(
 			"%w: key expiration must be greater than 0 (got %s)",
 			ErrInvalidKeyExpiration,
@@ -799,7 +800,8 @@ func (r *Rotator) Start() error {
 	}
 
 	if r.settings.AutoClearExpiredKeys {
-		r.cleaner.Start(context.Background(), r.settings.KeyExpiration)
+		interval := r.settings.KeyExpiration + time.Second
+		r.cleaner.Start(context.Background(), interval)
 	}
 
 	r.controller.TurnOn()
