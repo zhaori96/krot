@@ -36,6 +36,15 @@ type KeyStorage interface {
 	//     }
 	Delete(context context.Context, ids ...string) error
 
+	// ClearDeprecated iterates over the keys in the storage and removes any keys that are either nil or expired.
+	// It returns an error if any issues occur during the operation.
+	//
+	//     err := storage.ClearDeprecated(ctx)
+	//     if err != nil {
+	//         log.Fatal(err)
+	//     }
+	ClearDeprecated(context context.Context) error
+
 	// Erase removes all keys from the storage. If the keys cannot be erased, it
 	// returns an error.
 	//
@@ -80,6 +89,16 @@ func (s *inMemoryStorage) Add(_ context.Context, keys ...*Key) error {
 func (s *inMemoryStorage) Delete(_ context.Context, ids ...string) error {
 	for _, keyID := range ids {
 		delete(s.keys, keyID)
+	}
+
+	return nil
+}
+
+func (s *inMemoryStorage) ClearDeprecated(_ context.Context) error {
+	for key, value := range s.keys {
+		if value == nil || value.Expired() {
+			delete(s.keys, key)
+		}
 	}
 
 	return nil
