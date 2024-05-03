@@ -105,6 +105,11 @@ type RotatorSettings struct {
 	// The default value is DefaultRotationInterval.
 	RotationInterval time.Duration
 
+	// ExtendExpiration determines if the expiration of keys should be extended by the RotationInterval.
+	// This ensures that there is always a valid key during rotation transitions.
+	// The default value is true.
+	ExtendExpiration bool
+
 	// AutoClearExpiredKeys is a flag that indicates whether to automatically clear expired keys.
 	// The default value is true.
 	AutoClearExpiredKeys bool
@@ -732,11 +737,10 @@ func (r *Rotator) Rotate() error {
 			return err
 		}
 
-		keyExpiration := time.Now().
-			Add(r.settings.RotationInterval).
-			Add(r.settings.KeyExpiration)
-
-		r.cleaner.Add(string(keyID), keyExpiration)
+		keyExpiration := time.Now().Add(r.settings.KeyExpiration)
+		if r.settings.ExtendExpiration {
+			keyExpiration = keyExpiration.Add(r.settings.RotationInterval)
+		}
 
 		key := &Key{
 			ID:      fmt.Sprintf("%s:%x", r.id, keyID),
