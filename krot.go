@@ -800,7 +800,8 @@ func (r *Rotator) Start() error {
 	}
 
 	if r.settings.AutoClearExpiredKeys {
-		r.cleaner.Start(context.Background(), r.settings.KeyExpiration)
+		interval := r.settings.KeyExpiration + time.Second
+		r.cleaner.Start(context.Background(), interval)
 	}
 
 	r.controller.TurnOn()
