@@ -141,7 +141,7 @@ func (s *RotatorSettings) Validate() error {
 		)
 	}
 
-	if s.RotationInterval < 0 {
+	if s.RotationInterval <= 0 {
 		return fmt.Errorf(
 			"%w: rotation interval must be greater than 0 (got %s)",
 			ErrInvalidRotationInterval,
@@ -149,7 +149,7 @@ func (s *RotatorSettings) Validate() error {
 		)
 	}
 
-	if s.KeyExpiration < 0 {
+	if s.KeyExpiration <= 0 {
 		return fmt.Errorf(
 			"%w: key expiration must be greater than 0 (got %s)",
 			ErrInvalidKeyExpiration,
