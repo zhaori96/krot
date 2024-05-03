@@ -3,6 +3,7 @@ package krot_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -32,6 +33,11 @@ func (m *MockKeyStorage) Delete(ctx context.Context, ids ...string) error {
 	return args.Error(0)
 }
 
+func (m *MockKeyStorage) ClearDeprecated(ctx context.Context) error {
+	args := m.Called(ctx)
+	return args.Error(0)
+}
+
 func (m *MockKeyStorage) Erase(ctx context.Context) error {
 	args := m.Called(ctx)
 	return args.Error(0)
@@ -43,6 +49,7 @@ func TestInMemoryKeyStorage(t *testing.T) {
 	storage.Add(context.Background(), &krot.Key{ID: "1", Value: "1"})
 	storage.Add(context.Background(), &krot.Key{ID: "2", Value: "2"})
 	storage.Add(context.Background(), &krot.Key{ID: "3", Value: "3"})
+	storage.Add(context.Background(), &krot.Key{ID: "4", Value: "4", Expires: time.Now().Add(time.Minute * -1)})
 
 	t.Run("Get", func(t *testing.T) {
 		key, err := storage.Get(context.Background(), "1")
@@ -65,6 +72,17 @@ func TestInMemoryKeyStorage(t *testing.T) {
 
 	t.Run("Get after Delete", func(t *testing.T) {
 		key, err := storage.Get(context.Background(), "1")
+		assert.ErrorIs(t, err, krot.ErrKeyNotFound)
+		assert.Nil(t, key)
+	})
+
+	t.Run("Clear deprecated", func(t *testing.T) {
+		err := storage.ClearDeprecated(context.Background())
+		assert.NoError(t, err)
+	})
+
+	t.Run("Get after ClearDeprecated", func(t *testing.T) {
+		key, err := storage.Get(context.Background(), "4")
 		assert.ErrorIs(t, err, krot.ErrKeyNotFound)
 		assert.Nil(t, key)
 	})
