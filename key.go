@@ -12,7 +12,7 @@ type Key struct {
 }
 
 // Expired checks if the key has expired. It returns true if the key's expiration
-// time is after the current time, and false otherwise.
+// time is before the current time, and false otherwise.
 //
 //	if key.Expired() {
 //	    fmt.Println("The key has expired.")
@@ -20,5 +20,5 @@ type Key struct {
 //	    fmt.Println("The key has not expired.")
 //	}
 func (k *Key) Expired() bool {
-	return k.Expires.After(time.Now())
+	return k.Expires.Before(time.Now())
 }
