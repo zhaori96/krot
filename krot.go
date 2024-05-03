@@ -126,6 +126,7 @@ func DefaultRotatorSettings() *RotatorSettings {
 		KeyExpiration:        DefaultKeyExpiration,
 		RotationInterval:     DefaultRotationInterval,
 		AutoClearExpiredKeys: true,
+		ExtendExpiration:     true,
 		KeyProvidingMode:     AutoKeyProvidingMode,
 	}
 }
