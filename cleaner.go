@@ -2,122 +2,150 @@ package krot
 
 import (
 	"context"
-	"log"
-	"sync"
+	"fmt"
 	"time"
 )
 
-// KeyCleaner defines the interface for managing key expiration. It provides
-// methods for adding keys with expiration times, starting the cleaner, and
-// stopping the cleaner.
+// KeyCleanerHook defines the signature for key cleaner hooks.
+type KeyCleanerHook func(cleaner KeyCleaner)
+
+// KeyCleanerHooks defines a collection of key cleaner hooks.
+type KeyCleanerHooks []KeyCleanerHook
+
+// Run executes the key cleaner hooks.
+func (h KeyCleanerHooks) Run(cleaner KeyCleaner) {
+	for _, hook := range h {
+		hook(cleaner)
+	}
+}
+
+// KeyCleanerState defines the state of the key cleaner.
+type KeyCleanerState uint
+
+const (
+	// KeyCleanerStateIdle represents the idle state of the cleaner.
+	KeyCleanerStateIdle KeyCleanerState = iota
+
+	// KeyCleanerStateCleaning represents the cleaning state of the cleaner.
+	KeyCleanerStateCleaning
+)
+
+// KeyCleanerStatus defines the status of the key cleaner.
+type KeyCleanerStatus uint
+
+const (
+	// KeyCleanerStatusStopped represents the stopped status of the cleaner.
+	KeyCleanerStatusStopped KeyCleanerStatus = iota
+
+	// KeyCleanerStatusStarted represents the started status of the cleaner.
+	KeyCleanerStatusStarted
+)
+
 type KeyCleaner interface {
-	// Add adds a key with the specified ID and expiration time to the cleaner.
-	//
-	//     cleaner.Add("keyID", time.Now().Add(24 * time.Hour))
-	Add(id string, expiration time.Time)
+	// State returns the current state of the cleaner.
+	State() KeyCleanerState
+
+	// Status returns the current status of the cleaner.
+	Status() KeyCleanerStatus
+
+	// OnStart registers hooks to be executed when the cleaner starts.
+	OnStart(hooks ...KeyCleanerHook)
+
+	// OnStop registers hooks to be executed when the cleaner stops.
+	OnStop(hooks ...KeyCleanerHook)
+
+	// BeforeCleaning registers hooks to be executed before the cleaner starts cleaning.
+	BeforeCleaning(hooks ...KeyCleanerHook)
+
+	// AfterCleaning registers hooks to be executed after the cleaner finishes cleaning.
+	AfterCleaning(hooks ...KeyCleanerHook)
 
 	// Start begins the key cleaning process. It requires a context for managing
-	// timeouts and cancellations.
-	//
-	//     ctx := context.Background()
-	//     cleaner.Start(ctx)
-	Start(ctx context.Context)
+	Start(ctx context.Context, interval time.Duration) error
 
 	// Stop halts the key cleaning process.
-	//
-	//     cleaner.Stop()
 	Stop()
 }
 
 type keyCleaner struct {
-	ids         []string
-	expirations []time.Time
+	status KeyCleanerStatus
+	state  KeyCleanerState
 
-	ctx         context.Context
-	cancel      context.CancelFunc
-	locker      *sync.Mutex
-	newKeyAdded *sync.Cond
+	onStartHooks KeyCleanerHooks
+	onStopHooks  KeyCleanerHooks
+
+	beforeCleaningHooks KeyCleanerHooks
+	afterCleaningHooks  KeyCleanerHooks
+
+	ctx    context.Context
+	cancel context.CancelFunc
 
 	storage KeyStorage
 }
 
 func NewKeyCleaner(storage KeyStorage) KeyCleaner {
-	locker := &sync.Mutex{}
-	keyExpired := sync.NewCond(locker)
-
-	return &keyCleaner{
-		locker:      locker,
-		newKeyAdded: keyExpired,
-		storage:     storage,
-	}
+	return &keyCleaner{storage: storage}
 }
 
-func (c *keyCleaner) Add(id string, expiration time.Time) {
-	if expiration.Before(time.Now()) {
-		c.storage.Delete(context.Background(), id)
-		return
-	}
-
-	c.ids = append(c.ids, id)
-	c.expirations = append(c.expirations, expiration)
-
-	if len(c.ids) == 1 {
-		c.newKeyAdded.Signal()
-	}
+func (c *keyCleaner) State() KeyCleanerState {
+	return c.state
 }
 
-func (c *keyCleaner) Start(ctx context.Context) {
+func (c *keyCleaner) Status() KeyCleanerStatus {
+	return c.status
+}
+
+func (c *keyCleaner) OnStart(hooks ...KeyCleanerHook) {
+	c.onStartHooks = append(c.onStartHooks, hooks...)
+}
+
+func (c *keyCleaner) OnStop(hooks ...KeyCleanerHook) {
+	c.onStopHooks = append(c.onStopHooks, hooks...)
+}
+
+func (c *keyCleaner) BeforeCleaning(hooks ...KeyCleanerHook) {
+	c.beforeCleaningHooks = append(c.beforeCleaningHooks, hooks...)
+}
+
+func (c *keyCleaner) AfterCleaning(hooks ...KeyCleanerHook) {
+	c.afterCleaningHooks = append(c.afterCleaningHooks, hooks...)
+}
+
+func (c *keyCleaner) Start(ctx context.Context, interval time.Duration) error {
+	if c.status == KeyCleanerStatusStarted {
+		return fmt.Errorf("cleaner is already running")
+	}
+
 	c.ctx, c.cancel = context.WithCancel(ctx)
-	go c.run()
-}
+	c.status = KeyCleanerStatusStarted
+	go c.run(ctx, interval)
 
-func (c *keyCleaner) run() {
-	c.locker.Lock()
-	defer c.locker.Unlock()
-
-	for {
-		select {
-		case <-c.ctx.Done():
-			return
-		default:
-			if len(c.ids) == 0 {
-				c.newKeyAdded.Wait()
-				continue
-			}
-
-			expiration := c.expirations[0]
-			if expiration.Before(time.Now()) {
-				c.deleteLatestExpiredKey()
-				continue
-			}
-
-			timer := time.NewTimer(time.Until(expiration))
-			<-timer.C
-
-			select {
-			case <-c.ctx.Done():
-				return
-			default:
-				c.deleteLatestExpiredKey()
-			}
-		}
-	}
+	c.onStartHooks.Run(c)
+	return nil
 }
 
 func (c *keyCleaner) Stop() {
 	if c.cancel != nil {
+		c.status = KeyCleanerStatusStopped
 		c.cancel()
+		c.onStopHooks.Run(c)
 	}
 }
 
-func (c *keyCleaner) deleteLatestExpiredKey() {
-	id := c.ids[0]
+func (c *keyCleaner) run(context context.Context, interval time.Duration) {
+	for {
+		select {
+		case <-c.ctx.Done():
+			return
 
-	c.ids = c.ids[1:]
-	c.expirations = c.expirations[1:]
+		default:
+			c.state = KeyCleanerStateIdle
+			time.Sleep(interval)
 
-	err := c.storage.Delete(c.ctx, id)
-	if err != nil {
-		log.Printf("failed to delete key %s: %v", id, err)
+			c.beforeCleaningHooks.Run(c)
+			c.state = KeyCleanerStateCleaning
+			c.storage.ClearDeprecated(context)
+			c.afterCleaningHooks.Run(c)
+		}
 	}
 }
