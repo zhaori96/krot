@@ -36,6 +36,15 @@ type KeyStorage interface {
 	//     }
 	Delete(context context.Context, ids ...string) error
 
+	// ClearDeprecated iterates over the keys in the storage and removes any keys that are either nil or expired.
+	// It returns an error if any issues occur during the operation.
+	//
+	//     err := storage.ClearDeprecated(ctx)
+	//     if err != nil {
+	//         log.Fatal(err)
+	//     }
+	ClearDeprecated(context context.Context) error
+
 	// Erase removes all keys from the storage. If the keys cannot be erased, it
 	// returns an error.
 	//
@@ -47,17 +56,17 @@ type KeyStorage interface {
 }
 
 type inMemoryStorage struct {
-	keys map[string]*Key
+	storage map[string]*Key
 }
 
 func NewKeyStorage() KeyStorage {
 	return &inMemoryStorage{
-		keys: make(map[string]*Key),
+		storage: make(map[string]*Key),
 	}
 }
 
 func (s *inMemoryStorage) Get(_ context.Context, id string) (*Key, error) {
-	key, ok := s.keys[id]
+	key, ok := s.storage[id]
 	if !ok {
 		return nil, errors.Join(ErrKeyNotFound, fmt.Errorf("key %s not found", id))
 	}
@@ -71,7 +80,7 @@ func (s *inMemoryStorage) Add(_ context.Context, keys ...*Key) error {
 			continue
 		}
 
-		s.keys[key.ID] = key
+		s.storage[key.ID] = key
 	}
 
 	return nil
@@ -79,13 +88,23 @@ func (s *inMemoryStorage) Add(_ context.Context, keys ...*Key) error {
 
 func (s *inMemoryStorage) Delete(_ context.Context, ids ...string) error {
 	for _, keyID := range ids {
-		delete(s.keys, keyID)
+		delete(s.storage, keyID)
+	}
+
+	return nil
+}
+
+func (s *inMemoryStorage) ClearDeprecated(_ context.Context) error {
+	for key, value := range s.storage {
+		if value == nil || value.Expired() {
+			delete(s.storage, key)
+		}
 	}
 
 	return nil
 }
 
 func (s *inMemoryStorage) Erase(_ context.Context) error {
-	s.keys = make(map[string]*Key)
+	s.storage = make(map[string]*Key)
 	return nil
 }

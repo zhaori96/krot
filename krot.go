@@ -105,6 +105,11 @@ type RotatorSettings struct {
 	// The default value is DefaultRotationInterval.
 	RotationInterval time.Duration
 
+	// ExtendExpiration determines if the expiration of keys should be extended by the RotationInterval.
+	// This ensures that there is always a valid key during rotation transitions.
+	// The default value is true.
+	ExtendExpiration bool
+
 	// AutoClearExpiredKeys is a flag that indicates whether to automatically clear expired keys.
 	// The default value is true.
 	AutoClearExpiredKeys bool
@@ -380,12 +385,14 @@ func NewWithSettings(settings *RotatorSettings) (*Rotator, error) {
 // If no alias is provided, the rotator is associated with the context using the default alias "default".
 //
 // Example without alias:
-// 	rotator, ctx := krot.NewWithContext(context.Background())
-// 	krot.FromContext(ctx).Start() // Starts the default rotator
+//
+//	rotator, ctx := krot.NewWithContext(context.Background())
+//	krot.FromContext(ctx).Start() // Starts the default rotator
 //
 // Example with alias:
-// 	rotator, ctx := krot.NewWithContext(context.Background(), "my-rotator")
-// 	krot.FromContext(ctx, "my-rotator").Start() // Starts the rotator with the alias "my-rotator"
+//
+//	rotator, ctx := krot.NewWithContext(context.Background(), "my-rotator")
+//	krot.FromContext(ctx, "my-rotator").Start() // Starts the rotator with the alias "my-rotator"
 func NewWithContext(ctx context.Context, alias ...string) (*Rotator, context.Context) {
 	key := rotatorContextKey{}
 
@@ -407,18 +414,20 @@ func NewWithContext(ctx context.Context, alias ...string) (*Rotator, context.Con
 // If no Rotator is linked with the context (or the specified alias), it returns nil.
 //
 // Example wihtout alias:
-// 	rotator, ctx := krot.NewWithContext(context.Background())
-// 	krot.FromContext(ctx).Start() // Starts the default rotator
+//
+//	rotator, ctx := krot.NewWithContext(context.Background())
+//	krot.FromContext(ctx).Start() // Starts the default rotator
 //
 // Example with alias:
-// 	rotator, ctx := krot.NewWithContext(context.Background(), "my-rotator")
-// 	krot.FromContext(ctx, "my-rotator").Start() // Starts the rotator with the alias "my-rotator"
+//
+//	rotator, ctx := krot.NewWithContext(context.Background(), "my-rotator")
+//	krot.FromContext(ctx, "my-rotator").Start() // Starts the rotator with the alias "my-rotator"
 func FromContext(ctx context.Context, alias ...string) *Rotator {
 	key := rotatorContextKey{}
 
 	if len(alias) > 0 {
 		key.alias = alias[0]
-	} else{
+	} else {
 		key.alias = "default"
 	}
 
@@ -732,11 +741,10 @@ func (r *Rotator) Rotate() error {
 			return err
 		}
 
-		keyExpiration := time.Now().
-			Add(r.settings.RotationInterval).
-			Add(r.settings.KeyExpiration)
-
-		r.cleaner.Add(string(keyID), keyExpiration)
+		keyExpiration := time.Now().Add(r.settings.KeyExpiration)
+		if r.settings.ExtendExpiration {
+			keyExpiration = keyExpiration.Add(r.settings.RotationInterval)
+		}
 
 		key := &Key{
 			ID:      fmt.Sprintf("%s:%x", r.id, keyID),
@@ -791,7 +799,7 @@ func (r *Rotator) Start() error {
 	}
 
 	if r.settings.AutoClearExpiredKeys {
-		r.cleaner.Start(context.Background())
+		r.cleaner.Start(context.Background(), r.settings.KeyExpiration)
 	}
 
 	r.controller.TurnOn()
